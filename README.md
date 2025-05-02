@@ -1,78 +1,77 @@
-# 🗣️ SoussTalk – Application de messagerie intelligente et sécurisée
+# 🗣️ SoussTalk – Application de messagerie intelligente, sécurisée et collaborative
 
-**SoussTalk** est une application de chat en temps réel, collaborative, intelligente et sécurisée, conçue pour connecter les utilisateurs de manière fluide tout en assurant leur sécurité émotionnelle et numérique. Ce projet est développé par une équipe d'étudiants de l’**ENSIASD** dans le cadre d’un travail collaboratif.
-
----
-
-## 🚀 Fonctionnalités principales
-
-- 🔒 **Messagerie en temps réel** (Socket.IO)
-- 🎭 **Détection des émotions** à partir des messages textes
-- ⚠️ **Détection automatique des messages frauduleux (scam/phishing)**
-- 👥 **Discussions privées et de groupe**
-- 🖥️ **Interface moderne** développée avec React Native (Expo)
-- 📦 **Base de données collaborative** Supabase (PostgreSQL)
-- 🔔 **Système de notifications en temps réel**
-- 🧑‍🤝‍🧑 Conçu pour le travail en équipe
+**SoussTalk** est une plateforme de messagerie en temps réel, dotée de fonctionnalités intelligentes comme la détection d'émotions et de scams. Ce projet est développé par une équipe d'étudiants de l'**ENSIASD**, avec une attention particulière portée à la sécurité, la collaboration et l'expérience utilisateur.
 
 ---
 
-## 🧠 Intelligence intégrée
+## 🌟 Fonctionnalités clés
 
-SoussTalk intègre des algorithmes d’analyse du langage naturel (NLP) pour :
-
-- Identifier l’**humeur générale** d’une conversation (joie, tristesse, colère, etc.)
-- Détecter des messages suspects ou contenant des **liens potentiellement dangereux**
-
-Cela permet de **prévenir les arnaques**, améliorer **l’expérience utilisateur** et créer un **espace de discussion sain et respectueux**.
-
----
-
-## 🧰 Stack technologique
-
-| Technologie            | Usage                              |
-|------------------------|------------------------------------|
-| React Native (Expo)    | Front-end mobile                   |
-| Node.js + Express      | Back-end                           |
-| Supabase (PostgreSQL)  | Base de données collaborative      |
-| Socket.IO              | Communication en temps réel        |
-| NLP / IA (TensorFlow.js ou API Python) | Analyse d’émotions et détection de scam |
+- 🔐 Authentification sécurisée (JWT + Bcrypt)
+- 🗣️ Chat en temps réel (Socket.IO)
+- 🧠 Détection d’émotions et d’arnaques dans les messages
+- 🖼️ Envoi et stockage de fichiers (images, documents) via Supabase Storage
+- 🔔 Notifications instantanées
+- 📱 Interface responsive, moderne, et accessible
 
 ---
 
-## 👨‍💻 Équipe de développement
+## ⚙️ Stack Technique
 
-- **Badie Bahida**
-- **Khawla**
-- **Said**
-- **Yousf**
-- **Doaa**
+### Front-End
 
-> Étudiants à l’**École Nationale Supérieure de l’Intelligence Artificielle et des Sciences des Données – ENSIASD**
+- **React** (Vite)
+- **React Router** (navigation)
+- **Tailwind CSS** (design responsive)
+- **Axios** (requêtes HTTP)
+- **Socket.IO Client** (communication temps réel)
+
+### Back-End
+
+- **Node.js + Express** (API REST)
+- **Socket.IO** (WebSocket)
+- **JWT** (authentification par token)
+- **Bcrypt** (hash de mots de passe)
+
+### Base de Données
+
+- **Supabase (PostgreSQL)** – Base de données relationnelle
+- **Supabase Storage** – Stockage de fichiers
+
+### Déploiement
+
+- **Vercel** – Front-end
+- **Render** ou **Railway** – Back-end (API + WebSocket)
+
+### Sécurité
+
+- **Helmet** – Protection des en-têtes HTTP
+- **CORS** – Contrôle des accès Cross-Origin
+- **Rate Limiting** – Limitation de requêtes pour éviter les abus
+- **HTTPS** – Communication chiffrée
+
+### Outils de Dev
+
+- **Git & GitHub** – Versioning et collaboration
+- **.env** – Gestion sécurisée des clés/API
 
 ---
 
-## 🌍 Pourquoi "SoussTalk" ?
+## 🧑‍💻 Équipe de développement
 
-Le nom **SoussTalk** rend hommage à la région **Souss Massa**, d’où sont originaires certains membres de l’équipe. Il symbolise une volonté de **connecter les individus avec intelligence et authenticité**, tout en valorisant nos racines culturelles.
+> Étudiants de l'**École Nationale Supérieure de l'Intelligence Artificielle et des Sciences des Données – ENSIASD**
+
+- Badie Bahida
+- Khawla
+- Said
+- Yousf
+- Doaa
 
 ---
 
-## 📦 Installation (exemple simplifié)
+## 🛠️ Installation locale
+
+### 1. Cloner le projet
 
 ```bash
-# Clone le dépôt
-git clone https://github.com/badie16/SoussTalk.git
-# Installe les dépendances du serveur
-cd server
-npm install
-
-# Lance le serveur
-npm start
-
-# Installe les dépendances du client
-cd ../client
-npm install
-
-# Lance le client Expo
-npx expo start
+git clone https://github.com/votre-utilisateur/sousstalk.git
+cd sousstalk
