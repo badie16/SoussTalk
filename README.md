@@ -61,10 +61,10 @@
 > Étudiants de l'**École Nationale Supérieure de l'Intelligence Artificielle et des Sciences des Données – ENSIASD**
 
 - Badie Bahida
-- Khawla
+- Khaoula
 - Said
 - Yousf
-- Doaa
+- Douae
 
 ---
 
