@@ -62,8 +62,7 @@ Le nom **SoussTalk** rend hommage à la région **Souss Massa**, d’où sont or
 
 ```bash
 # Clone le dépôt
-git clone https://github.com/votre-utilisateur/sousstalk.git
-
+git clone https://github.com/badie16/SoussTalk.git
 # Installe les dépendances du serveur
 cd server
 npm install
