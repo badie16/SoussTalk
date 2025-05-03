@@ -1,17 +1,17 @@
-# 🗣️ SoussTalk – Application de messagerie intelligente, sécurisée et collaborative
+# 🗣️ SoussTalk – Application de Messagerie Intelligente, Sécurisée et Collaborative
 
-**SoussTalk** est une plateforme de messagerie en temps réel, dotée de fonctionnalités intelligentes comme la détection d'émotions et de scams. Ce projet est développé par une équipe d'étudiants de l'**ENSIASD**, avec une attention particulière portée à la sécurité, la collaboration et l'expérience utilisateur.
+**SoussTalk** est une plateforme de messagerie en temps réel, dotée de fonctionnalités intelligentes telles que la détection des émotions et des arnaques. Ce projet est développé par une équipe d'étudiants de l'**ENSIASD**, avec un accent particulier sur la sécurité, la collaboration et l'expérience utilisateur.
 
 ---
 
-## 🌟 Fonctionnalités clés
+## 🌟 Fonctionnalités Clés
 
-- 🔐 Authentification sécurisée (JWT + Bcrypt)
-- 🗣️ Chat en temps réel (Socket.IO)
-- 🧠 Détection d’émotions et d’arnaques dans les messages
-- 🖼️ Envoi et stockage de fichiers (images, documents) via Supabase Storage
-- 🔔 Notifications instantanées
-- 📱 Interface responsive, moderne, et accessible
+- 🔐 **Authentification sécurisée** (JWT + Bcrypt)
+- 🗣️ **Chat en temps réel** (Socket.IO)
+- 🧠 **Détection d’émotions et d’arnaques** dans les messages
+- 🖼️ **Envoi et stockage de fichiers** (images, documents) via **Supabase Storage**
+- 🔔 **Notifications instantanées**
+- 📱 **Interface responsive**, moderne et accessible
 
 ---
 
@@ -49,14 +49,14 @@
 - **Rate Limiting** – Limitation de requêtes pour éviter les abus
 - **HTTPS** – Communication chiffrée
 
-### Outils de Dev
+### Outils de Développement
 
 - **Git & GitHub** – Versioning et collaboration
 - **.env** – Gestion sécurisée des clés/API
 
 ---
 
-## 🧑‍💻 Équipe de développement
+## 🧑‍💻 Équipe de Développement
 
 > Étudiants de l'**École Nationale Supérieure de l'Intelligence Artificielle et des Sciences des Données – ENSIASD**
 
@@ -68,10 +68,46 @@
 
 ---
 
-## 🛠️ Installation locale
+## 🛠️ Installation Locale
 
 ### 1. Cloner le projet
 
 ```bash
-git clone https://github.com/votre-utilisateur/sousstalk.git
+git clone https://github.com/badie16/SoussTalk.git
 cd sousstalk
+```
+
+### 2. Installer les dépendances pour le front-end
+
+```bash
+cd client
+npm install
+```
+
+### 3. Installer les dépendances pour le back-end
+
+```bash
+cd ../server
+npm install
+```
+
+### 4. Lancer le serveur de développement
+
+Pour le front-end
+
+```bash
+cd client
+npm run dev
+```
+
+Pour le back-end
+
+```bash
+cd server
+npm run dev
+```
+##  📄 Licence
+Ce projet est sous licence MIT. Consulte le fichier LICENSE pour plus d’informations.
+
+## 📞 Contact
+Si vous avez des questions, des suggestions ou des commentaires, n’hésitez pas à nous contacter à notre email.
