@@ -55,7 +55,31 @@
 - **.env** – Gestion sécurisée des clés/API
 
 ---
+## 📁 Structure du Projet SoussTalk
 
+### Backend (Node.js/Express)
+
+```plaintext
+src/
+├── controllers/         # Contient les contrôleurs qui gèrent la logique métier (traitement des requêtes, interaction avec la base de données).
+├── middleware/      # 	Modules intermédiaires pour l'authentification (JWT), la validation des données, ou la détection d'arnaques avant d'atteindre les contrôleurs.
+├── routes/         # 	Définit les endpoints de l'API (ex: /auth, /messages) et les associe aux contrôleurs.
+├── services/           # 	Logique complexe ou accès aux données (ex: service de détection d'émotions avec IA)
+├── index.js/           #  Point d'entrée du serveur : configure Express, les middlewares, et lance le serveur.
+├── package.json/           #  Configuration du projet
+```
+### Frontend (React)
+
+```plaintext
+src/
+├── assets/          # Ressources statiques (images, polices, icônes).
+├── components/      # Composants React réutilisables (ex: Message.jsx, Navbar.jsx).
+├── context/         # Gestion d'état global avec React Context (ex: AuthContext.js pour l'utilisateur connecté).
+├── hooks/           # Hooks personnalisés (ex: useSocket.js pour la gestion des WebSockets).
+└── pages/           # Composants représentant des pages (ex: LoginPage.jsx, ChatPage.jsx).
+├── package.json/    # Configuration du projet
+├── App.js/          # Composant racine qui définit les routes et la structure de base.
+```
 ## 🧑‍💻 Équipe de Développement
 
 > Étudiants de l'**École Nationale Supérieure de l'Intelligence Artificielle et des Sciences des Données – ENSIASD**
