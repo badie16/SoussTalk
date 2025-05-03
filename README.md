@@ -61,12 +61,12 @@
 
 ```plaintext
 src/
-├── controllers/         # Contient les contrôleurs qui gèrent la logique métier (traitement des requêtes, interaction avec la base de données).
-├── middleware/      # 	Modules intermédiaires pour l'authentification (JWT), la validation des données, ou la détection d'arnaques avant d'atteindre les contrôleurs.
-├── routes/         # 	Définit les endpoints de l'API (ex: /auth, /messages) et les associe aux contrôleurs.
-├── services/           # 	Logique complexe ou accès aux données (ex: service de détection d'émotions avec IA)
-├── index.js/           #  Point d'entrée du serveur : configure Express, les middlewares, et lance le serveur.
-├── package.json/           #  Configuration du projet
+├── controllers/     # Contient les contrôleurs qui gèrent la logique métier (traitement des requêtes, interaction avec BD).
+├── middleware/      # Modules intermédiaires pour l'authentification (JWT), la validation des données.
+├── routes/          # Définit les endpoints de l'API (ex: /auth, /messages) et les associe aux contrôleurs.
+├── services/        # Logique complexe ou accès aux données (ex: service de détection d'émotions avec IA)
+├── index.js/        # Point d'entrée du serveur : configure Express, les middlewares, et lance le serveur.
+├── package.json/    # Configuration du projet
 ```
 ### Frontend (React)
 
@@ -77,7 +77,7 @@ src/
 ├── context/         # Gestion d'état global avec React Context (ex: AuthContext.js pour l'utilisateur connecté).
 ├── hooks/           # Hooks personnalisés (ex: useSocket.js pour la gestion des WebSockets).
 └── pages/           # Composants représentant des pages (ex: LoginPage.jsx, ChatPage.jsx).
-├── package.json/    # Configuration du projet
+├── package.json/    # Configuration du projet.
 ├── App.js/          # Composant racine qui définit les routes et la structure de base.
 ```
 ## 🧑‍💻 Équipe de Développement
