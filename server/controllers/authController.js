@@ -4,18 +4,16 @@ const userService = require("../services/userService");
 // Contrôleur de connexion
 exports.login = async (req, res) => {
 	try {
-		const { email, password } = req.body;
-
+		const { email, password } = req.body;		
 		// Valider les entrées
-		if (!email || !password) {
+		if (!email || !password) {			
 			return res
 				.status(400)
 				.json({ message: "Email et mot de passe sont requis" });
-		}
-
+		}		
 		// Authentifier l'utilisateur
 		const authData = await authService.authenticateUser(email, password);
-
+		
 		if (!authData) {
 			return res.status(401).json({ message: "Identifiants invalides" });
 		}

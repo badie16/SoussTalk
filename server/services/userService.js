@@ -66,16 +66,12 @@ exports.updateUserOnlineStatus = async (userId, isOnline) => {};
 // Vérifier les identifiants de l'utilisateur
 exports.verifyUserCredentials = async (email, password) => {
 	const user = await exports.getUserByEmail(email);
-
 	if (!user) {
 		return null;
 	}
-
-	const isMatch = await bcrypt.compare(password, user.password_hash);
-
+	const isMatch = await bcrypt.compare(password, user.password);
 	if (!isMatch) {
 		return null;
 	}
-
 	return user;
 };

@@ -16,8 +16,9 @@ exports.generateToken = (user) => {
 
 // Authentifier un utilisateur
 exports.authenticateUser = async (email, password) => {
+	console.log("ddd")
 	const user = await userService.verifyUserCredentials(email, password);
-
+	
 	if (!user) {
 		return null;
 	}
