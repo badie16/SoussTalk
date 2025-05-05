@@ -1,137 +1,127 @@
-# 🗣️ SoussTalk – Application de Messagerie Intelligente, Sécurisée et Collaborative
+# 🗣️ SoussTalk – Smart, Secure & Collaborative Messaging App  
 
-**SoussTalk** est une plateforme de messagerie en temps réel, dotée de fonctionnalités intelligentes telles que la détection des émotions et des arnaques. Ce projet est développé par une équipe d'étudiants de l'**ENSIASD**, avec un accent particulier sur la sécurité, la collaboration et l'expérience utilisateur.
+**SoussTalk** is a real-time messaging platform with intelligent features like emotion and scam detection. This project is developed by a team of students from **ENSIASD**, with a strong focus on security, collaboration, and user experience.  
 
----
+---  
 
-## 🌟 Fonctionnalités Clés
+## 🌟 Key Features  
 
-- 🔐 **Authentification sécurisée** (JWT + Bcrypt)
-- 🗣️ **Chat en temps réel** (Socket.IO)
-- 🧠 **Détection d’émotions et d’arnaques** dans les messages
-- 🖼️ **Envoi et stockage de fichiers** (images, documents) via **Supabase Storage**
-- 🔔 **Notifications instantanées**
-- 📱 **Interface responsive**, moderne et accessible
+- 🔐 **Secure authentication** (JWT + Bcrypt)  
+- 🗣️ **Real-time chat** (Socket.IO)  
+- 🧠 **Emotion & scam detection** in messages  
+- 🖼️ **File upload & storage** (images, documents) via **Supabase Storage**  
+- 🔔 **Instant notifications**  
+- 📱 **Responsive, modern & accessible UI**  
 
----
+---  
 
-## ⚙️ Stack Technique
+## ⚙️ Tech Stack  
 
-### Front-End
+### Front-End  
+- **React** (Vite)  
+- **React Router** (navigation)  
+- **Tailwind CSS** (responsive design)  
+- **Axios** (HTTP requests)  
+- **Socket.IO Client** (real-time communication)  
 
-- **React** (Vite)
-- **React Router** (navigation)
-- **Tailwind CSS** (design responsive)
-- **Axios** (requêtes HTTP)
-- **Socket.IO Client** (communication temps réel)
+### Back-End  
+- **Node.js + Express** (REST API)  
+- **Socket.IO** (WebSocket)  
+- **JWT** (token authentication)  
+- **Bcrypt** (password hashing)  
 
-### Back-End
+### Database  
+- **Supabase (PostgreSQL)** – Relational database  
+- **Supabase Storage** – File storage  
 
-- **Node.js + Express** (API REST)
-- **Socket.IO** (WebSocket)
-- **JWT** (authentification par token)
-- **Bcrypt** (hash de mots de passe)
+### Deployment  
+- **Vercel** – Front-end  
+- **Render** or **Railway** – Back-end (API + WebSocket)  
 
-### Base de Données
+### Security  
+- **Helmet** – HTTP headers protection  
+- **CORS** – Cross-Origin Access Control  
+- **Rate Limiting** – Request throttling to prevent abuse  
+- **HTTPS** – Encrypted communication  
 
-- **Supabase (PostgreSQL)** – Base de données relationnelle
-- **Supabase Storage** – Stockage de fichiers
+### Development Tools  
+- **Git & GitHub** – Version control & collaboration  
+- **.env** – Secure API key management  
 
-### Déploiement
+---  
 
-- **Vercel** – Front-end
-- **Render** ou **Railway** – Back-end (API + WebSocket)
+## 📁 Project Structure  
 
-### Sécurité
-
-- **Helmet** – Protection des en-têtes HTTP
-- **CORS** – Contrôle des accès Cross-Origin
-- **Rate Limiting** – Limitation de requêtes pour éviter les abus
-- **HTTPS** – Communication chiffrée
-
-### Outils de Développement
-
-- **Git & GitHub** – Versioning et collaboration
-- **.env** – Gestion sécurisée des clés/API
-
----
-## 📁 Structure du Projet SoussTalk
-
-### Backend (Node.js/Express)
-
-```plaintext
-src/
-├── controllers/     # Contient les contrôleurs qui gèrent la logique métier (traitement des requêtes, interaction avec BD).
-├── middleware/      # Modules intermédiaires pour l'authentification (JWT), la validation des données.
-├── routes/          # Définit les endpoints de l'API (ex: /auth, /messages) et les associe aux contrôleurs.
-├── services/        # Logique complexe ou accès aux données (ex: service de détection d'émotions avec IA)
-├── index.js/        # Point d'entrée du serveur : configure Express, les middlewares, et lance le serveur.
-├── package.json/    # Configuration du projet
+### Backend (Node.js/Express)  
 ```
-### Frontend (React)
-
-```plaintext
-src/
-├── assets/          # Ressources statiques (images, polices, icônes).
-├── components/      # Composants React réutilisables (ex: Message.jsx, Navbar.jsx).
-├── context/         # Gestion d'état global avec React Context (ex: AuthContext.js pour l'utilisateur connecté).
-├── hooks/           # Hooks personnalisés (ex: useSocket.js pour la gestion des WebSockets).
-└── pages/           # Composants représentant des pages (ex: LoginPage.jsx, ChatPage.jsx).
-├── package.json/    # Configuration du projet.
-├── App.js/          # Composant racine qui définit les routes et la structure de base.
-```
-## 🧑‍💻 Équipe de Développement
-
-> Étudiants de l'**École Nationale Supérieure de l'Intelligence Artificielle et des Sciences des Données – ENSIASD**
-
-- Badie
-- Khaoula
-- Said
-- Youssef
-- Douae
-
----
-
-## 🛠️ Installation Locale
-
-### 1. Cloner le projet
-
-```bash
-git clone https://github.com/badie16/SoussTalk.git
-cd sousstalk
+src/  
+├── controllers/     # Business logic (request handling, DB interaction)  
+├── middleware/      # Authentication (JWT), data validation  
+├── routes/          # API endpoints (e.g., /auth, /messages)  
+├── services/        # Complex logic (e.g., AI-based emotion detection)  
+├── index.js/        # Server entry (Express setup, middleware, server launch)  
+├── package.json/    # Project configuration  
 ```
 
-### 2. Installer les dépendances pour le front-end
-
-```bash
-cd client
-npm install
+### Frontend (React)  
 ```
+src/  
+├── assets/          # Static resources (images, fonts, icons)  
+├── components/      # Reusable React components (e.g., Message.jsx, Navbar.jsx)  
+├── context/         # Global state (e.g., AuthContext.js for logged-in user)  
+├── hooks/           # Custom hooks (e.g., useSocket.js for WebSocket handling)  
+└── pages/           # Page components (e.g., LoginPage.jsx, ChatPage.jsx)  
+├── package.json/    # Project configuration  
+├── App.js/          # Root component (routes & base structure)  
+```  
 
-### 3. Installer les dépendances pour le back-end
+## 🧑‍💻 Development Team  
+> Students from **École Nationale Supérieure de l'Intelligence Artificielle et des Sciences des Données – ENSIASD**  
 
-```bash
-cd ../server
-npm install
-```
+- Badie  
+- Khaoula  
+- Said  
+- Youssef  
+- Douae  
 
-### 4. Lancer le serveur de développement
+---  
 
-Pour le front-end
+## 🛠️ Local Setup  
 
-```bash
-cd client
-npm run dev
-```
+### 1. Clone the project  
+```bash  
+git clone https://github.com/badie16/SoussTalk.git  
+cd sousstalk  
+```  
 
-Pour le back-end
+### 2. Install front-end dependencies  
+```bash  
+cd client  
+npm install  
+```  
 
-```bash
-cd server
-npm run dev
-```
-##  📄 Licence
-Ce projet est sous licence MIT. Consulte le fichier LICENSE pour plus d’informations.
+### 3. Install back-end dependencies  
+```bash  
+cd ../server  
+npm install  
+```  
 
-## 📞 Contact
-Si vous avez des questions, des suggestions ou des commentaires, n’hésitez pas à nous contacter à notre email.
+### 4. Run the development server  
+
+Front-end:  
+```bash  
+cd client  
+npm run dev  
+```  
+
+Back-end:  
+```bash  
+cd server  
+npm run dev  
+```  
+
+## 📄 License  
+This project is under the MIT License. See the LICENSE file for details.  
+
+## 📞 Contact  
+For questions, suggestions, or feedback, feel free to reach out via email.  
