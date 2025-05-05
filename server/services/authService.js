@@ -52,6 +52,4 @@ exports.registerUser = async (userData) => {
 };
 
 // Déconnecter un utilisateur
-exports.logoutUser = async (userId) => {
-	return await userService.updateUserOnlineStatus(userId, false);
-};
+exports.logoutUser = async (userId) => {};

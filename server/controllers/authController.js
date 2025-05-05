@@ -39,17 +39,7 @@ exports.register = async (req, res) => {
 
 // Contrôleur de déconnexion
 exports.logout = async (req, res) => {
-	try {
-		const userId = req.user.id;
-
-		// Mettre à jour le statut en ligne
-		await authService.logoutUser(userId);
-
-		res.status(200).json({ message: "Déconnexion réussie" });
-	} catch (error) {
-		console.error("Logout error:", error);
-		res.status(500).json({ message: "Erreur serveur" });
-	}
+	// logout
 };
 
 // Contrôleur pour récupérer le profil utilisateur

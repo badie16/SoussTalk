@@ -61,18 +61,7 @@ exports.createUser = async (userData) => {
 };
 
 // Mettre à jour le statut en ligne d'un utilisateur
-exports.updateUserOnlineStatus = async (userId, isOnline) => {
-	const { error } = await supabase
-		.from("users")
-		.update({ is_online: isOnline })
-		.eq("id", userId);
-
-	if (error) {
-		throw new Error(error.message);
-	}
-
-	return true;
-};
+exports.updateUserOnlineStatus = async (userId, isOnline) => {};
 
 // Vérifier les identifiants de l'utilisateur
 exports.verifyUserCredentials = async (email, password) => {
