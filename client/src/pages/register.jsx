@@ -1,3 +1,3 @@
 export default function Register() {
-	return <></>;
+	return <>{/* said and khawla */}</>;
 }
