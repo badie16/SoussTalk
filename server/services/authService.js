@@ -45,6 +45,9 @@ const signup = async (userData) => {
 		throw new Error("Nom d'utilisateur déjà utilisé");
 	}
 
+	// Hachage du mot de passe
+	const hashedPassword = await bcrypt.hash(password, 10);
+
 	// Insert the user in our custom users table with the UUID from auth.users
 	const { data, error: insertError } = await supabase
 		.from("users")
@@ -52,7 +55,7 @@ const signup = async (userData) => {
 			{
 				id: uuid, // Use the UUID from auth.users as the primary key
 				username,
-                password,
+				password: hashedPassword,
 				email,
 				gender,
 				avatar_url,
