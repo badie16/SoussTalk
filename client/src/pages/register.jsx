@@ -134,16 +134,11 @@ export default function Signup() {
 
 		try {
 			const formDataToSend = new FormData();
-			Object.keys(formData).forEach((key) => {
-				if (key === "profilePicture" && formData[key]) {
-					formDataToSend.append(key, formData[key]);
-				} else if (formData[key] !== null) {
-					formDataToSend.append(key, formData[key]);
-				}
-			});
-			console.log(formData);
-			formData["profilePicture"] = "hhhhhh";
-			const result = await signup(formData);
+			for (const key in formData) {
+				formDataToSend.append(key, formData[key]);
+			}
+			console.log(formDataToSend);
+			const result = await signup(formDataToSend);
 			if (result.success) {
 				setRegistrationComplete(true);
 			} else {
@@ -400,7 +395,7 @@ export default function Signup() {
 												<input
 													type="radio"
 													name="gender"
-													value="male"													
+													value="male"
 													checked={formData.gender === "male"}
 													onChange={handleChange}
 													className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300"

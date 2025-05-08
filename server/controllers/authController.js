@@ -3,10 +3,10 @@ const authService = require("../services/authService");
 
 const signup = async (req, res) => {
 	try {
-		console.log(req.body);
 		// Validation simple des champs requis
 		const { username, email, password, first_name, last_name, gender } =
 			req.body;
+		const file = req.file;
 		if (
 			!username ||
 			!email ||
@@ -19,7 +19,7 @@ const signup = async (req, res) => {
 				message: "Veuillez remplir tous les champs obligatoires",
 			});
 		}
-		const user = await authService.signup(req.body);
+		const user = await authService.signup(req.body, file);
 		res.status(201).json({
 			message:
 				"Inscription réussie ! Veuillez vérifier votre boîte mail pour confirmer votre adresse email.",
