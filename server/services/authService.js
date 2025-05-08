@@ -14,36 +14,62 @@ const signup = async (userData) => {
 		first_name = "",
 		last_name = "",
 	} = userData;
+	// First, Vérifier si l'email existe déjà dans la table "users"
+	const { data: existingEmail, error: emailCheckError } = await supabase
+		.from("users")
+		.select("id")
+		.eq("email", email)
+		.maybeSingle();
 
-	// First, create the user in auth.users using Supabase Auth
+	if (emailCheckError) {
+		if (
+			emailCheckError.message.includes("fetch failed") || // fetch natif échoué
+			emailCheckError.message.includes("Failed to fetch") || // fetch navigateur
+			emailCheckError.message.includes("NetworkError") || // erreur de réseau général
+			emailCheckError.message.includes("Timeout") // timeout générique
+		) {
+			throw new Error("Erreur réseau. vérifiez votre connexion.");
+		}
+		throw new Error("Erreur lors de la vérification de l'email.");
+	}
+
+	if (existingEmail) {
+		throw new Error("Cette adresse email est déjà utilisée.");
+	}
+
+	const { data: existingUsername, error: usernameCheckError } = await supabase
+		.from("users")
+		.select("id")
+		.eq("username", username)
+		.maybeSingle();
+
+	if (usernameCheckError) {
+		throw new Error("Erreur lors de la vérification du nom d'utilisateur.");
+	}
+
+	if (existingUsername) {
+		throw new Error(
+			"Nom d'utilisateur déjà utilisé. Veuillez en choisir un autre."
+		);
+	}
+
+	// create the user in auth.users using Supabase Auth
 	const { data: authUser, error: authError } = await supabase.auth.signUp({
 		email,
 		password,
 	});
 
 	if (authError) {
-		throw new Error(`Erreur d'authentification: ${authError.message}`);
+		// Ex: adresse déjà utilisée ou format invalide
+		if (authError.message.includes("User already registered")) {
+			throw new Error("Cette adresse email est déjà utilisée.");
+		}
+		throw new Error(
+			`Erreur lors de la création du compte: ${authError.message}`
+		);
 	}
-
 	// Get the UUID from the newly created auth user
 	const uuid = authUser.user.id;
-
-	// Check if username already exists in our custom users table
-	const { data: existingUser, error: checkError } = await supabase
-		.from("users")
-		.select("*")
-		.eq("username", username)
-		.maybeSingle();
-
-	if (checkError) {
-		throw new Error("Erreur lors de la vérification de l'utilisateur");
-	}
-
-	if (existingUser) {
-		// If username exists, we need to delete the auth user we just created
-		await supabase.auth.admin.deleteUser(uuid);
-		throw new Error("Nom d'utilisateur déjà utilisé");
-	}
 
 	// Hachage du mot de passe
 	const hashedPassword = await bcrypt.hash(password, 10);
@@ -68,11 +94,15 @@ const signup = async (userData) => {
 		.select();
 
 	if (insertError) {
-		// If insertion fails, delete the auth user
 		await supabase.auth.admin.deleteUser(uuid);
+		// If insertion fails, delete the auth user
+		if (insertError.message.includes("duplicate key value")) {
+			throw new Error(
+				"Nom d'utilisateur ou email déjà utilisé. Veuillez réessayer."
+			);
+		}
 		throw insertError;
 	}
-
 	// Generate JWT token
 	const token = jwt.sign({ id: uuid }, process.env.JWT_SECRET, {
 		expiresIn: "1h",
@@ -82,7 +112,7 @@ const signup = async (userData) => {
 };
 
 const login = async ({ email, password }) => {
-	// First authenticate with Supabase Auth
+	// Authentification avec Supabase
 	const { data: authData, error: authError } =
 		await supabase.auth.signInWithPassword({
 			email,
@@ -90,9 +120,19 @@ const login = async ({ email, password }) => {
 		});
 
 	if (authError) {
-		throw new Error(authError.message);
+		if (authError.code === "email_not_confirmed") {
+			throw new Error("Email non confirmé. Veuillez confirmer votre email.");
+		} else if (
+			authError.message.includes("fetch failed") || // fetch natif échoué
+			authError.message.includes("Failed to fetch") || // fetch navigateur
+			authError.message.includes("NetworkError") || // erreur de réseau général
+			authError.message.includes("Timeout") // timeout générique
+		) {
+			throw new Error("Erreur réseau. vérifiez votre connexion.");
+		}
+		throw new Error("Email ou mot de passe incorrect");
 	}
-	// Get the user from our custom users table using the UUID
+	// Récupérer l'utilisateur de la table personnalisée
 	const { data: user, error } = await supabase
 		.from("users")
 		.select("*")
@@ -100,14 +140,13 @@ const login = async ({ email, password }) => {
 		.single();
 
 	if (error || !user) {
-		throw new Error("Utilisateur non trouvé dans la base de données");
+		throw new Error("Email ou mot de passe incorrect");
 	}
 
-	// Generate JWT token
+	// Génération du token JWT
 	const token = jwt.sign({ id: user.id }, process.env.JWT_SECRET, {
 		expiresIn: "1h",
 	});
-
 	return { token, user };
 };
 
