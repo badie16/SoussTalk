@@ -1,56 +1,114 @@
+const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
-const userService = require("./userService");
+const supabase = require("../config/supabase");
 
-// Générer un token JWT
-exports.generateToken = (user) => {
-	return jwt.sign(
-		{
-			id: user.id,
-			email: user.email,
-			username: user.username,
-		},
-		process.env.JWT_SECRET || "your-secret-key",
-		{ expiresIn: "24h" }
-	);
-};
+const signup = async (userData) => {
+	const {
+		username,
+		email,
+		password,
+		gender = "",
+		avatar_url = "",
+		bio = "",
+		phone_number = "",
+		first_name = "",
+		last_name = "",
+	} = userData;
 
-// Authentifier un utilisateur
-exports.authenticateUser = async (email, password) => {
-	console.log("ddd")
-	const user = await userService.verifyUserCredentials(email, password);
-	
-	if (!user) {
-		return null;
+	// First, create the user in auth.users using Supabase Auth
+	const { data: authUser, error: authError } = await supabase.auth.signUp({
+		email,
+		password,
+	});
+
+	if (authError) {
+		throw new Error(`Erreur d'authentification: ${authError.message}`);
 	}
 
-	// Mettre à jour le statut en ligne
-	await userService.updateUserOnlineStatus(user.id, true);
+	// Get the UUID from the newly created auth user
+	const uuid = authUser.user.id;
 
-	// Générer un token
-	const token = exports.generateToken(user);
+	// Check if username already exists in our custom users table
+	const { data: existingUser, error: checkError } = await supabase
+		.from("users")
+		.select("*")
+		.eq("username", username)
+		.maybeSingle();
 
-	return {
-		token,
-		user: {
-			id: user.id,
-			username: user.username,
-			email: user.email,
-			avatar_url: user.avatar_url,
-			bio: user.bio,
-		},
-	};
+	if (checkError) {
+		throw new Error("Erreur lors de la vérification de l'utilisateur");
+	}
+
+	if (existingUser) {
+		// If username exists, we need to delete the auth user we just created
+		await supabase.auth.admin.deleteUser(uuid);
+		throw new Error("Nom d'utilisateur déjà utilisé");
+	}
+
+	// Hachage du mot de passe
+	const hashedPassword = await bcrypt.hash(password, 10);
+
+	// Insert the user in our custom users table with the UUID from auth.users
+	const { data, error: insertError } = await supabase
+		.from("users")
+		.insert([
+			{
+				id: uuid, // Use the UUID from auth.users as the primary key
+				username,
+				password: hashedPassword,
+				email,
+				gender,
+				avatar_url,
+				bio,
+				phone_number,
+				first_name,
+				last_name,
+			},
+		])
+		.select();
+
+	if (insertError) {
+		// If insertion fails, delete the auth user
+		await supabase.auth.admin.deleteUser(uuid);
+		throw insertError;
+	}
+
+	// Generate JWT token
+	const token = jwt.sign({ id: uuid }, process.env.JWT_SECRET, {
+		expiresIn: "1h",
+	});
+
+	return { token, user: data[0] };
 };
 
-// Enregistrer un nouvel utilisateur
-exports.registerUser = async (userData) => {
-	// Vérifier si l'utilisateur existe déjà
+const login = async ({ email, password }) => {
+	// First authenticate with Supabase Auth
+	const { data: authData, error: authError } =
+		await supabase.auth.signInWithPassword({
+			email,
+			password,
+		});
 
-	// Créer l'utilisateur
+	if (authError) {
+		throw new Error(authError.message);
+	}
+	// Get the user from our custom users table using the UUID
+	const { data: user, error } = await supabase
+		.from("users")
+		.select("*")
+		.eq("id", authData.user.id)
+		.single();
 
-	// Générer un token
+	if (error || !user) {
+		throw new Error("Utilisateur non trouvé dans la base de données");
+	}
 
-	return {};
+	// Generate JWT token
+	const token = jwt.sign({ id: user.id }, process.env.JWT_SECRET, {
+		expiresIn: "1h",
+	});
+
+	return { token, user };
 };
 
-// Déconnecter un utilisateur
-exports.logoutUser = async (userId) => {};
+module.exports = { signup, login };

@@ -1,77 +1,49 @@
 const supabase = require("../config/supabase");
-const bcrypt = require("bcryptjs");
 
-// Récupérer un utilisateur par son ID
-exports.getUserById = async (id) => {
-	const { data: user, error } = await supabase
+// Récupérer un utilisateur par ID (UUID)
+const getUserById = async (id) => {
+	const { data, error } = await supabase
 		.from("users")
 		.select("*")
 		.eq("id", id)
 		.single();
 
-	if (error) {
-		throw new Error(error.message);
-	}
-
-	return user;
+	if (error) throw error;
+	return data;
 };
 
-// Récupérer un utilisateur par son email
-exports.getUserByEmail = async (email) => {
-	const { data: user, error } = await supabase
+// Mettre à jour les infos d'un utilisateur
+const updateUser = async (id, updates) => {
+	const { data, error } = await supabase
 		.from("users")
-		.select("*")
-		.eq("email", email)
+		.update(updates)
+		.eq("id", id)
 		.single();
 
-	if (error && error.code !== "PGRST116") {
-		// PGRST116 est le code d'erreur quand aucun résultat n'est trouvé
-		throw new Error(error.message);
-	}
-
-	return user;
+	if (error) throw error;
+	return data;
 };
 
-// Récupérer un utilisateur par son nom d'utilisateur
-exports.getUserByUsername = async (username) => {
-	const { data: user, error } = await supabase
+// Supprimer un utilisateur
+const deleteUser = async (id) => {
+	// First delete from custom users table
+	const { error: userDeleteError } = await supabase
 		.from("users")
-		.select("*")
-		.eq("username", username)
-		.single();
+		.delete()
+		.eq("id", id);
 
-	if (error && error.code !== "PGRST116") {
-		throw new Error(error.message);
-	}
+	if (userDeleteError) throw userDeleteError;
 
-	return user;
+	// Then delete from auth.users
+	const { error: authDeleteError } = await supabase.auth.admin.deleteUser(id);
+
+	if (authDeleteError) throw authDeleteError;
+
+	return { success: true };
 };
 
-// Créer un nouvel utilisateur
-exports.createUser = async (userData) => {
-	// Créer d'abord l'utilisateur dans auth.users
-
-	// Hacher le mot de passe pour notre table users personnalisée
-
-	// Créer l'utilisateur dans notre table users personnalisée
-
-	// Supprimer l'utilisateur auth si la création dans users échoue
-
-	return {};
-};
-
-// Mettre à jour le statut en ligne d'un utilisateur
-exports.updateUserOnlineStatus = async (userId, isOnline) => {};
-
-// Vérifier les identifiants de l'utilisateur
-exports.verifyUserCredentials = async (email, password) => {
-	const user = await exports.getUserByEmail(email);
-	if (!user) {
-		return null;
-	}
-	const isMatch = await bcrypt.compare(password, user.password);
-	if (!isMatch) {
-		return null;
-	}
-	return user;
+module.exports = {
+	getUserById,
+	updateUser,
+	deleteUser,
 };
