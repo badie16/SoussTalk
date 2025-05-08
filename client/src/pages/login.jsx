@@ -1,9 +1,8 @@
-"use client";
-
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import axios from "axios";
+import { login } from "../services/authService";
 import { Eye, EyeOff } from "lucide-react";
+import Loading from "../components/Loading";
 
 export default function Login() {
 	const [formData, setFormData] = useState({
@@ -30,17 +29,14 @@ export default function Login() {
 		setError("");
 
 		try {
-			const API_URL = import.meta.env.VITE_API_URL;
-			const response = await axios.post(`${API_URL}/auth/login`, formData);
-
-			// Store token in localStorage
-			localStorage.setItem("token", response.data.token);
-
-			// Store user data
-			localStorage.setItem("user", JSON.stringify(response.data.user));
-
-			// Redirect to chat dashboard
-			navigate("/chat");
+			const result = await login(formData);
+			if (result.success) {
+				// Mettre à jour le contexte d'authentification
+				// Rediriger vers le chat
+				navigate("/chat");
+			} else {
+				setError(result.message);
+			}
 		} catch (err) {
 			setError(
 				err.response?.data?.message || "Login failed. Please try again."
@@ -53,7 +49,6 @@ export default function Login() {
 	const togglePasswordVisibility = () => {
 		setShowPassword(!showPassword);
 	};
-
 	return (
 		<div className="flex min-h-screen bg-gradient-to-br from-green-400 to-green-600">
 			{/* Left sidebar with illustration */}
