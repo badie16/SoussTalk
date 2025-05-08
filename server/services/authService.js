@@ -1,56 +1,80 @@
-const jwt = require("jsonwebtoken");
-const userService = require("./userService");
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
+const supabase = require('../config/supabase');
 
-// Générer un token JWT
-exports.generateToken = (user) => {
-	return jwt.sign(
-		{
-			id: user.id,
-			email: user.email,
-			username: user.username,
-		},
-		process.env.JWT_SECRET || "your-secret-key",
-		{ expiresIn: "24h" }
-	);
+const signup = async (userData) => {
+    const {
+        username,
+        email,
+        password,
+        gender = '',
+        avatar_url = '',
+        bio = '',
+        phone_number = '',
+        first_name = '',
+        last_name = ''
+    } = userData;
+
+    // Vérification si email ou username déjà utilisés
+    const { data: existingUser, error: checkError } = await supabase
+        .from('users')
+        .select('*')
+        .or(`email.eq.${email},username.eq.${username}`)
+        .maybeSingle();
+
+    if (checkError) {
+        throw new Error("Erreur lors de la vérification de l'utilisateur");
+    }
+
+    if (existingUser) {
+        throw new Error('Email ou nom d’utilisateur déjà utilisé');
+    }
+
+    // Hachage du mot de passe
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    // Insertion du nouvel utilisateur
+    const { data, error: insertError } = await supabase
+        .from('users')
+        .insert([{
+            username,
+            email,
+            password: hashedPassword,
+            gender,
+            avatar_url,
+            bio,
+            phone_number,
+            first_name,
+            last_name
+        }])
+        .select();
+
+    if (insertError) {
+        throw insertError;
+    }
+
+    return data[0]; // retourne l'utilisateur inséré
 };
 
-// Authentifier un utilisateur
-exports.authenticateUser = async (email, password) => {
-	console.log("ddd")
-	const user = await userService.verifyUserCredentials(email, password);
-	
-	if (!user) {
-		return null;
-	}
+const login = async ({ email, password }) => {
+    const { data: user, error } = await supabase
+        .from('users')
+        .select('*')
+        .eq('email', email)
+        .maybeSingle();
 
-	// Mettre à jour le statut en ligne
-	await userService.updateUserOnlineStatus(user.id, true);
+    if (error || !user) {
+        throw new Error('Utilisateur non trouvé');
+    }
 
-	// Générer un token
-	const token = exports.generateToken(user);
+    const isValid = await bcrypt.compare(password, user.password);
+    if (!isValid) {
+        throw new Error('Mot de passe incorrect');
+    }
 
-	return {
-		token,
-		user: {
-			id: user.id,
-			username: user.username,
-			email: user.email,
-			avatar_url: user.avatar_url,
-			bio: user.bio,
-		},
-	};
+    const token = jwt.sign({ id: user.id }, process.env.JWT_SECRET, { expiresIn: '1h' });
+
+    return { token, user };
 };
 
-// Enregistrer un nouvel utilisateur
-exports.registerUser = async (userData) => {
-	// Vérifier si l'utilisateur existe déjà
-
-	// Créer l'utilisateur
-
-	// Générer un token
-
-	return {};
-};
-
-// Déconnecter un utilisateur
-exports.logoutUser = async (userId) => {};
+module.exports = { signup, login };
