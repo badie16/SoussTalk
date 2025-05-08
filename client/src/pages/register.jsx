@@ -21,7 +21,7 @@ export default function Signup() {
 		email: "",
 		phone: "",
 		bio: "",
-		gender: "",
+		gender: "male",
 		password: "",
 		confirmPassword: "",
 	});
@@ -190,37 +190,35 @@ export default function Signup() {
 				</div>
 			</div>
 			{registrationComplete ? (
-				<div className="flex min-h-screen bg-gradient-to-br from-green-400 to-green-600">
-					<div className="w-full md:w-2/3 lg:w-3/5 bg-white rounded-l-3xl shadow-xl flex items-center justify-center p-6 my-5">
-						<div className="w-full max-w-md text-center">
-							<div className="flex flex-col items-center justify-center space-y-4">
-								<div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
-									<Mail className="h-8 w-8 text-green-600" />
-								</div>
-								<h2 className="text-2xl font-bold text-gray-800">
-									Vérifiez votre email
-								</h2>
-								<p className="text-gray-600">
-									Un email de confirmation a été envoyé à{" "}
-									<span className="font-medium">{formData.email}</span>
+				<div className="w-full md:w-2/3 lg:w-3/5 bg-white rounded-l-3xl shadow-xl flex items-center justify-center p-6 my-5">
+					<div className="w-full max-w-md text-center">
+						<div className="flex flex-col items-center justify-center space-y-4">
+							<div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
+								<Mail className="h-8 w-8 text-green-600" />
+							</div>
+							<h2 className="text-2xl font-bold text-gray-800">
+								Vérifiez votre email
+							</h2>
+							<p className="text-gray-600">
+								Un email de confirmation a été envoyé à{" "}
+								<span className="font-medium">{formData.email}</span>
+							</p>
+							<div className="bg-gray-50 p-4 rounded-lg w-full">
+								<p className="text-sm text-gray-600">
+									Veuillez vérifier votre boîte de réception et cliquer sur le
+									lien de confirmation pour activer votre compte.
 								</p>
-								<div className="bg-gray-50 p-4 rounded-lg w-full">
-									<p className="text-sm text-gray-600">
-										Veuillez vérifier votre boîte de réception et cliquer sur le
-										lien de confirmation pour activer votre compte.
-									</p>
-									<p className="text-sm text-gray-600 mt-2">
-										Si vous ne trouvez pas l'email, vérifiez votre dossier spam.
-									</p>
-								</div>
-								<div className="flex flex-col space-y-3 w-full mt-4">
-									<button
-										onClick={() => navigate("/login")}
-										className="w-full py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
-									>
-										Aller à la page de connexion
-									</button>
-								</div>
+								<p className="text-sm text-gray-600 mt-2">
+									Si vous ne trouvez pas l'email, vérifiez votre dossier spam.
+								</p>
+							</div>
+							<div className="flex flex-col space-y-3 w-full mt-4">
+								<button
+									onClick={() => navigate("/login")}
+									className="w-full py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+								>
+									Aller à la page de connexion
+								</button>
 							</div>
 						</div>
 					</div>
@@ -402,7 +400,7 @@ export default function Signup() {
 												<input
 													type="radio"
 													name="gender"
-													value="male"
+													value="male"													
 													checked={formData.gender === "male"}
 													onChange={handleChange}
 													className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300"
