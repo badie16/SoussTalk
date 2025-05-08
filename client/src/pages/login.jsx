@@ -73,7 +73,7 @@ export default function Login() {
 				</div>
 
 				<div className="mt-auto text-sm opacity-70">
-					© {2025} SoussTalk. Développé par les étudiants de l'ENSIASD
+					© {new Date().getFullYear()} SoussTalk. Développé par les étudiants de l'ENSIASD
 				</div>
 			</div>
 
