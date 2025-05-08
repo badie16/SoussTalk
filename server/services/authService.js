@@ -52,6 +52,7 @@ const signup = async (userData) => {
 			{
 				id: uuid, // Use the UUID from auth.users as the primary key
 				username,
+                password,
 				email,
 				gender,
 				avatar_url,
