@@ -90,9 +90,8 @@ const login = async ({ email, password }) => {
 		});
 
 	if (authError) {
-		throw new Error("Email ou mot de passe incorrect");
+		throw new Error(authError.message);
 	}
-
 	// Get the user from our custom users table using the UUID
 	const { data: user, error } = await supabase
 		.from("users")
