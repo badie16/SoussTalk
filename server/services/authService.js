@@ -8,7 +8,7 @@ const signup = async (userData) => {
 		email,
 		password,
 		gender = "",
-		avatar_url = "",
+		profilePicture = null,
 		bio = "",
 		phone_number = "",
 		first_name = "",
@@ -73,7 +73,29 @@ const signup = async (userData) => {
 
 	// Hachage du mot de passe
 	const hashedPassword = await bcrypt.hash(password, 10);
+	let avatar_url = "";
+	if (profilePicture) {
+		// Générer un nom de fichier unique
+		const fileName = `${uuid}_${Date.now()}.${profilePicture.originalname
+			.split(".")
+			.pop()}`;
 
+		// Uploader l'image vers Supabase Storage
+		const { data: uploadData, error: uploadError } = await supabase.storage
+			.from("avatars")
+			.upload(fileName, profilePicture.buffer, {
+				contentType: profilePicture.mimetype,
+			});
+		if (uploadError) {
+			console.error("Erreur lors de l'upload de l'image:", uploadError);			
+		} else {
+			// Récupérer l'URL publique de l'image
+			const { data: urlData } = supabase.storage
+				.from("avatars")
+				.getPublicUrl(fileName);
+			avatar_url = urlData.publicUrl;
+		}
+	}
 	// Insert the user in our custom users table with the UUID from auth.users
 	const { data, error: insertError } = await supabase
 		.from("users")
