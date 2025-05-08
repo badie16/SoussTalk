@@ -9,7 +9,7 @@ const API_URL = import.meta.env.VITE_API_URL;
 // Connexion
 export const login = async (formData) => {
 	try {
-		const response = await axios.post(`${API_URL}/auth/login`, formData);
+		const response = await axios.post(`${API_URL}/api/auth/login`, formData);
 		
 		// Stocker le token et les données utilisateur
 		localStorage.setItem("token", response.data.token);
