@@ -1,114 +1,72 @@
+// services/authService.js
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const supabase = require("../config/supabase");
 
 const signup = async (userData) => {
-	const {
-		username,
-		email,
-		password,
-		gender = "",
-		avatar_url = "",
-		bio = "",
-		phone_number = "",
-		first_name = "",
-		last_name = "",
-	} = userData;
+  const { username, email, password, gender = "", bio = "", phone_number = "", first_name = "", last_name = "", avatar_url = "" } = userData;
 
-	// First, create the user in auth.users using Supabase Auth
-	const { data: authUser, error: authError } = await supabase.auth.signUp({
-		email,
-		password,
-	});
+  const { data: existingEmail, error: emailCheckError } = await supabase
+    .from("users")
+    .select("id")
+    .eq("email", email)
+    .maybeSingle();
 
-	if (authError) {
-		throw new Error(`Erreur d'authentification: ${authError.message}`);
-	}
+  if (emailCheckError) throw new Error("Erreur vérification email.");
+  if (existingEmail) throw new Error("Email déjà utilisé.");
 
-	// Get the UUID from the newly created auth user
-	const uuid = authUser.user.id;
+  const { data: existingUsername, error: usernameCheckError } = await supabase
+    .from("users")
+    .select("id")
+    .eq("username", username)
+    .maybeSingle();
 
-	// Check if username already exists in our custom users table
-	const { data: existingUser, error: checkError } = await supabase
-		.from("users")
-		.select("*")
-		.eq("username", username)
-		.maybeSingle();
+  if (usernameCheckError) throw new Error("Erreur vérification username.");
+  if (existingUsername) throw new Error("Username déjà utilisé.");
 
-	if (checkError) {
-		throw new Error("Erreur lors de la vérification de l'utilisateur");
-	}
+  const { data: authUser, error: authError } = await supabase.auth.signUp({ email, password });
+  if (authError) throw new Error(`Erreur Supabase Auth: ${authError.message}`);
 
-	if (existingUser) {
-		// If username exists, we need to delete the auth user we just created
-		await supabase.auth.admin.deleteUser(uuid);
-		throw new Error("Nom d'utilisateur déjà utilisé");
-	}
+  const uuid = authUser.user.id;
+  const hashedPassword = await bcrypt.hash(password, 10);
 
-	// Hachage du mot de passe
-	const hashedPassword = await bcrypt.hash(password, 10);
+  const { data, error: insertError } = await supabase
+    .from("users")
+    .insert([{
+      id: uuid,
+      username,
+      password: hashedPassword,
+      email,
+      gender,
+      avatar_url,
+      bio,
+      phone_number,
+      first_name,
+      last_name,
+    }]);
 
-	// Insert the user in our custom users table with the UUID from auth.users
-	const { data, error: insertError } = await supabase
-		.from("users")
-		.insert([
-			{
-				id: uuid, // Use the UUID from auth.users as the primary key
-				username,
-				password: hashedPassword,
-				email,
-				gender,
-				avatar_url,
-				bio,
-				phone_number,
-				first_name,
-				last_name,
-			},
-		])
-		.select();
+  if (insertError) {
+    await supabase.auth.admin.deleteUser(uuid);
+    throw new Error("Erreur insertion base de données.");
+  }
 
-	if (insertError) {
-		// If insertion fails, delete the auth user
-		await supabase.auth.admin.deleteUser(uuid);
-		throw insertError;
-	}
-
-	// Generate JWT token
-	const token = jwt.sign({ id: uuid }, process.env.JWT_SECRET, {
-		expiresIn: "1h",
-	});
-
-	return { token, user: data[0] };
+  const token = jwt.sign({ id: uuid }, process.env.JWT_SECRET, { expiresIn: "1h" });
+  return { token, user: data[0] };
 };
 
 const login = async ({ email, password }) => {
-	// First authenticate with Supabase Auth
-	const { data: authData, error: authError } =
-		await supabase.auth.signInWithPassword({
-			email,
-			password,
-		});
+  const { data: user, error } = await supabase
+    .from("users")
+    .select("*")
+    .eq("email", email)
+    .maybeSingle();
 
-	if (authError) {
-		throw new Error(authError.message);
-	}
-	// Get the user from our custom users table using the UUID
-	const { data: user, error } = await supabase
-		.from("users")
-		.select("*")
-		.eq("id", authData.user.id)
-		.single();
+  if (error || !user) throw new Error("Utilisateur non trouvé.");
+  const isMatch = await bcrypt.compare(password, user.password);
+  if (!isMatch) throw new Error("Mot de passe incorrect.");
 
-	if (error || !user) {
-		throw new Error("Utilisateur non trouvé dans la base de données");
-	}
-
-	// Generate JWT token
-	const token = jwt.sign({ id: user.id }, process.env.JWT_SECRET, {
-		expiresIn: "1h",
-	});
-
-	return { token, user };
+  const token = jwt.sign({ id: user.id }, process.env.JWT_SECRET, { expiresIn: "1h" });
+  return { token, user };
 };
 
 module.exports = { signup, login };

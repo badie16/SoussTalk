@@ -25,21 +25,25 @@ export default function Login() {
 
 	const handleSubmit = async (e) => {
 		e.preventDefault();
+
+		if (loading) return; // éviter les doubles clics rapides
+
 		setLoading(true);
 		setError("");
 
 		try {
 			const result = await login(formData);
+
 			if (result.success) {
-				// Mettre à jour le contexte d'authentification
-				// Rediriger vers le chat
 				navigate("/chat");
 			} else {
-				setError(result.message);
+				setError(
+					result.message || "Une erreur est survenue lors de la connexion."
+				);
 			}
 		} catch (err) {
 			setError(
-				err.response?.data?.message || "Login failed. Please try again."
+				err.response?.data?.message || "Connexion échouée. Veuillez réessayer."
 			);
 		} finally {
 			setLoading(false);
@@ -69,7 +73,7 @@ export default function Login() {
 				</div>
 
 				<div className="mt-auto text-sm opacity-70">
-					© {2025} SoussTalk. Développé par les étudiants de l'ENSIASD
+					© {new Date().getFullYear()} SoussTalk. Développé par les étudiants de l'ENSIASD
 				</div>
 			</div>
 
