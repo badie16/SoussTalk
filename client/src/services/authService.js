@@ -2,6 +2,18 @@ import axios from "axios";
 
 const API_URL = import.meta.env.VITE_API_URL;
 
+// Intercepteur pour gérer les erreurs de connexion
+axios.interceptors.response.use(
+	(response) => response,
+	(error) => {
+		// Si l'erreur est liée à un problème de réseau, rediriger vers la page d'erreur de connexion
+		if (!error.response) {
+			window.location.href = "/connection-error";
+		}
+		return Promise.reject(error);
+	}
+);
+
 //  Vérifier si l'utilisateur est connecté
 export const isLoggedIn = () => {
 	const token = localStorage.getItem("token");
