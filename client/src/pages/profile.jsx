@@ -1,67 +1,97 @@
 "use client"
-
 import { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
 import { ArrowLeft, Edit2, Camera, Check, X } from "lucide-react"
+import { getUserProfile } from "../services/userService"
+
 import "../index.css"
+
 
 const Profile = () => {
   const navigate = useNavigate()
-  const [userData, setUserData] = useState({
-    name: "User Name",
-    email: "user@example.com",
-    phone: "+1 234 567 890",
-    bio: "No bio available",
+  
+  const [profile, setProfile] = useState({
+    name: "",
+    email: "",
+    phone: "",
+    bio: "",
     profileImage: "/placeholder.svg",
   })
   const [isEditing, setIsEditing] = useState(false)
   const [editedData, setEditedData] = useState({
-    name: "User Name",
-    email: "user@example.com",
-    phone: "+1 234 567 890",
-    bio: "No bio available",
+    name: "",
+    email: "",
+    phone: "",
+    bio: "",
   })
+  const Profile = () => {
+    useEffect(() => {
+      const fetchProfile = async () => {
+        const currentUser = currentUser();
+        if (currentUser?.id) {
+          const { success, data, message } = await getUserProfile(currentUser.id);
+          if (success) {
+            console.log("Profil :", data);
+          } else {
+            console.error("Erreur profil :", message);
+          }
+        }
+      };
+  
+      fetchProfile();
+    }, []);
+  
+    return <div>Page Profil</div>;
+  };
+  
   const [isLoading, setIsLoading] = useState(false)
 
-  // Load user data on component mount
+  // Load user data from Supabase
   useEffect(() => {
-    // Simple function to load user data
-    const loadUserData = () => {
+    const loadUserData = async () => {
+      setIsLoading(true)
       try {
-        const storedData = localStorage.getItem("userData")
-        if (storedData) {
-          const parsedData = JSON.parse(storedData)
-          const newUserData = {
-            name: parsedData.name || "User Name",
-            email: parsedData.email || "user@example.com",
-            phone: parsedData.phone || "+1 234 567 890",
-            bio: parsedData.bio || "No bio available",
-            profileImage: parsedData.profileImage || "/placeholder.svg",
-          }
-          setUserData(newUserData)
-          setEditedData({
-            name: newUserData.name,
-            email: newUserData.email,
-            phone: newUserData.phone,
-            bio: newUserData.bio,
-          })
+        const user = JSON.parse(localStorage.getItem("user") || "{}")
+        if (!user.id) {
+          navigate("/login")
+          return
         }
+
+        const profileData = await getUserProfile(user.id)
+        
+        setProfile({
+          name: `${profileData.first_name} ${profileData.last_name}`,
+          email: profileData.email,
+          phone: profileData.phone_number || "",
+          bio: profileData.bio || "No bio available",
+          profileImage: profileData.avatar_url || "/placeholder.svg",
+        })
+
+        setEditedData({
+          name: `${profileData.first_name} ${profileData.last_name}`,
+          email: profileData.email,
+          phone: profileData.phone_number || "",
+          bio: profileData.bio || "",
+        })
       } catch (error) {
-        console.error("Error loading user data:", error)
+        console.error("Error loading profile data:", error)
+        alert("Failed to load profile")
+      } finally {
+        setIsLoading(false)
       }
     }
 
     loadUserData()
-  }, []) // Empty dependency array - only run once on mount
+  }, [navigate])
 
   const handleEditToggle = () => {
     if (isEditing) {
       // Cancel editing
       setEditedData({
-        name: userData.name,
-        email: userData.email,
-        phone: userData.phone,
-        bio: userData.bio,
+        name: profile.name,
+        email: profile.email,
+        phone: profile.phone,
+        bio: profile.bio,
       })
     }
     setIsEditing(!isEditing)
@@ -75,73 +105,54 @@ const Profile = () => {
     }))
   }
 
-  const handleImageUpload = (e) => {
+  const handleImageUpload = async (e) => {
     const file = e.target.files?.[0]
-    if (file) {
-      // Check file size (max 1MB)
-      if (file.size > 1024 * 1024) {
-        alert("Image size should be less than 1MB")
+    if (!file) return
+  
+    if (file.size > 1024 * 1024) {
+      alert("Image size should be less than 1MB")
+      return
+    }
+  
+    setIsLoading(true)
+    try {
+      const user = JSON.parse(localStorage.getItem("user") || "{}")
+      if (!user.id) {
+        navigate("/login")
         return
       }
-
-      const reader = new FileReader()
-      reader.onload = (e) => {
-        const result = e.target?.result
-        if (result) {
-          setUserData((prev) => ({
-            ...prev,
-            profileImage: result,
-          }))
-
-          // Also update in localStorage
-          try {
-            const storedUserData = JSON.parse(localStorage.getItem("userData") || "{}")
-            storedUserData.profileImage = result
-            localStorage.setItem("userData", JSON.stringify(storedUserData))
-          } catch (error) {
-            console.error("Error updating profile image in localStorage:", error)
-          }
-        }
-      }
-      reader.readAsDataURL(file)
+  
+    } catch (error) {
+      console.error("Error uploading image:", error)
+      alert("Failed to upload image")
+    } finally {
+      setIsLoading(false)
     }
   }
 
-  const handleSaveChanges = () => {
+  const handleSaveChanges = async () => {
     setIsLoading(true)
-
-    // Simulate API call
-    setTimeout(() => {
-      try {
-        // Update userData state
-        setUserData((prev) => ({
-          ...prev,
-          ...editedData,
-        }))
-
-        // Update localStorage
-        const storedUserData = JSON.parse(localStorage.getItem("userData") || "{}")
-        const updatedUserData = {
-          ...storedUserData,
-          ...editedData,
-        }
-        localStorage.setItem("userData", JSON.stringify(updatedUserData))
-
-        setIsEditing(false)
-      } catch (error) {
-        console.error("Error saving profile changes:", error)
-        alert("Failed to save changes. Please try again.")
-      } finally {
-        setIsLoading(false)
+    try {
+      const user = JSON.parse(localStorage.getItem("user") || "{}")
+      if (!user.id) {
+        navigate("/login")
+        return
       }
-    }, 1000)
+  
+    } catch (error) {
+      console.error("Error saving profile changes:", error)
+      alert("Failed to save changes. Please try again.")
+    } finally {
+      setIsLoading(false)
+    }
   }
+  
 
-  // Safe navigation back to chat
   const handleBackToChat = () => {
     navigate("/chat")
   }
-
+ 
+  
   return (
     <div className="min-h-screen bg-gray-100 dark:bg-gray-900">
       {/* Top Navigation */}
@@ -201,7 +212,7 @@ const Profile = () => {
             <div className="relative -mt-16 mb-4">
               <div className="w-32 h-32 rounded-full border-4 border-white dark:border-gray-800 overflow-hidden bg-gray-200 dark:bg-gray-700">
                 <img
-                  src={userData.profileImage || "/placeholder.svg"}
+                  src={profile.profileImage || "/placeholder.svg"}
                   alt="Profile"
                   className="w-full h-full object-cover"
                   onError={(e) => {
@@ -238,7 +249,7 @@ const Profile = () => {
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-green-500 focus:border-green-500 dark:bg-gray-700 dark:text-white"
                   />
                 ) : (
-                  <p className="text-lg font-semibold text-gray-800 dark:text-gray-200">{userData.name}</p>
+                  <p className="text-lg font-semibold text-gray-800 dark:text-gray-200">{profile.name}</p>
                 )}
               </div>
 
@@ -270,7 +281,7 @@ const Profile = () => {
                       <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
                       <polyline points="22,6 12,13 2,6"></polyline>
                     </svg>
-                    <p className="text-gray-800 dark:text-gray-200">{userData.email}</p>
+                    <p className="text-gray-800 dark:text-gray-200">{profile.email}</p>
                   </div>
                 )}
               </div>
@@ -302,7 +313,7 @@ const Profile = () => {
                     >
                       <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
                     </svg>
-                    <p className="text-gray-800 dark:text-gray-200">{userData.phone}</p>
+                    <p className="text-gray-800 dark:text-gray-200">{profile.phone}</p>
                   </div>
                 )}
               </div>
@@ -319,7 +330,7 @@ const Profile = () => {
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-green-500 focus:border-green-500 dark:bg-gray-700 dark:text-white"
                   ></textarea>
                 ) : (
-                  <p className="text-gray-800 dark:text-gray-200 whitespace-pre-line">{userData.bio}</p>
+                  <p className="text-gray-800 dark:text-gray-200 whitespace-pre-line">{profile.bio}</p>
                 )}
               </div>
             </div>
@@ -342,7 +353,7 @@ const Profile = () => {
                 title="Logout"
                 danger
                 onClick={() => {
-                  localStorage.removeItem("userData")
+                  localStorage.removeItem("user")
                   navigate("/login")
                 }}
               />
