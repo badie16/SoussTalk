@@ -1,7 +1,19 @@
 import axios from "axios";
 
 const API_URL = import.meta.env.VITE_API_URL;
-console.log(API_URL)
+
+// Intercepteur pour gérer les erreurs de connexion
+axios.interceptors.response.use(
+	(response) => response,
+	(error) => {
+		// Si l'erreur est liée à un problème de réseau, rediriger vers la page d'erreur de connexion
+		if (!error.response) {
+			window.location.href = "/connection-error";
+		}
+		return Promise.reject(error);
+	}
+);
+
 //  Vérifier si l'utilisateur est connecté
 export const isLoggedIn = () => {
 	const token = localStorage.getItem("token");
@@ -40,19 +52,25 @@ export const logout = async () => {
 
 	try {
 		if (token) {
-			await axios.post(
-				`${API_URL}/api/auth/logout`,
-				{},
-				{
-					headers: {
-						Authorization: `Bearer ${token}`,
-					},
-				}
-			);
+			await axios
+				.post(
+					`${API_URL}/api/auth/logout`,
+					{},
+					{
+						headers: {
+							Authorization: `Bearer ${token}`,
+						},
+					}
+				)
+				.catch((err) => {
+					// Ignorer les erreurs de déconnexion côté serveur
+					console.warn("Erreur lors de la déconnexion côté serveur:", err);
+				});
 		}
 	} catch (error) {
 		console.error("Erreur de déconnexion :", error);
 	} finally {
+		// Toujours supprimer les données locales
 		localStorage.removeItem("token");
 		localStorage.removeItem("user");
 	}

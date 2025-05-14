@@ -2,6 +2,8 @@ import { Routes, Route, Navigate, useLocation } from "react-router-dom";
 import Login from "./pages/login";
 import Register from "./pages/register";
 import Chat from "./pages/chat";
+import NotFound from "./pages/not-found";
+import ConnectionError from "./pages/connection-error";
 import Profile from "./pages/profile";
 import { useEffect } from "react";
 
@@ -65,4 +67,5 @@ export default function App() {
       </Routes>
     </AuthCheck>
   );
+
 }

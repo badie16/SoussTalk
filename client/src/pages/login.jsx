@@ -1,8 +1,9 @@
-import { useState } from "react";
+"use client";
+
+import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { login } from "../services/authService";
 import { Eye, EyeOff } from "lucide-react";
-import Loading from "../components/Loading";
+import { login } from "../services/authService";
 
 export default function Login() {
 	const [formData, setFormData] = useState({
@@ -14,6 +15,16 @@ export default function Login() {
 	const [showPassword, setShowPassword] = useState(false);
 	const [rememberMe, setRememberMe] = useState(false);
 	const navigate = useNavigate();
+
+	// Vérifier si l'utilisateur est déjà connecté
+	useEffect(() => {
+		const token = localStorage.getItem("token");
+		const user = localStorage.getItem("user");
+
+		if (token && user) {
+			navigate("/chat");
+		}
+	}, [navigate]);
 
 	const handleChange = (e) => {
 		const { name, value } = e.target;
@@ -42,9 +53,7 @@ export default function Login() {
 				);
 			}
 		} catch (err) {
-			setError(
-				err.response?.data?.message || "Connexion échouée. Veuillez réessayer."
-			);
+			setError(err.message || "Connexion échouée. Veuillez réessayer.");
 		} finally {
 			setLoading(false);
 		}
@@ -53,6 +62,7 @@ export default function Login() {
 	const togglePasswordVisibility = () => {
 		setShowPassword(!showPassword);
 	};
+
 	return (
 		<div className="flex min-h-screen bg-gradient-to-br from-green-400 to-green-600">
 			{/* Left sidebar with illustration */}
@@ -73,7 +83,8 @@ export default function Login() {
 				</div>
 
 				<div className="mt-auto text-sm opacity-70">
-					© {new Date().getFullYear()} SoussTalk. Développé par les étudiants de l'ENSIASD
+					© {new Date().getFullYear()} SoussTalk. Développé par les étudiants de
+					l'ENSIASD
 				</div>
 			</div>
 

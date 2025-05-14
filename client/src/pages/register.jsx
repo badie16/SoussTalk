@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
 	Eye,
@@ -9,7 +9,7 @@ import {
 	ArrowRight,
 	ArrowLeft,
 } from "lucide-react";
-import { signup } from "../services/authService"; // Assurez-vous que le chemin vers authService est correct
+import { signup } from "../services/authService";
 
 export default function Signup() {
 	const [step, setStep] = useState(1);
@@ -32,6 +32,16 @@ export default function Signup() {
 	const navigate = useNavigate();
 	const [previewImage, setPreviewImage] = useState(null);
 	const [registrationComplete, setRegistrationComplete] = useState(false);
+
+	// Vérifier si l'utilisateur est déjà connecté
+	useEffect(() => {
+		const token = localStorage.getItem("token");
+		const user = localStorage.getItem("user");
+
+		if (token && user) {
+			navigate("/chat");
+		}
+	}, [navigate]);
 
 	const handleChange = (e) => {
 		const { name, value } = e.target;
@@ -137,7 +147,7 @@ export default function Signup() {
 			for (const key in formData) {
 				formDataToSend.append(key, formData[key]);
 			}
-			console.log(formDataToSend);
+
 			const result = await signup(formDataToSend);
 			if (result.success) {
 				setRegistrationComplete(true);
@@ -145,7 +155,7 @@ export default function Signup() {
 				setError(result.message);
 			}
 		} catch (err) {
-			console.log(err);
+			console.error(err);
 			setError("Inscription échouée. Veuillez réessayer.");
 		} finally {
 			setLoading(false);
@@ -160,8 +170,10 @@ export default function Signup() {
 		setShowConfirmPassword(!showConfirmPassword);
 	};
 
+	// Le reste du composant reste inchangé
 	return (
 		<div className="flex min-h-screen bg-gradient-to-br from-green-400 to-green-600">
+			{/* Le reste du code reste inchangé */}
 			{/* Left sidebar with illustration */}
 			<div className="hidden md:flex md:w-1/3 lg:w-3/6 flex-col p-10 text-white">
 				<div className="mb-8">
@@ -258,6 +270,7 @@ export default function Signup() {
 						)}
 
 						<form onSubmit={handleSubmit}>
+							{/* Le reste du formulaire reste inchangé */}
 							{/* Step 1: Basic Info */}
 							{step === 1 && (
 								<div className="space-y-6">
