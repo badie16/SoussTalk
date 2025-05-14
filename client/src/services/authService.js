@@ -1,7 +1,7 @@
 import axios from "axios";
 
 const API_URL = import.meta.env.VITE_API_URL;
-console.log(API_URL)
+
 //  Vérifier si l'utilisateur est connecté
 export const isLoggedIn = () => {
 	const token = localStorage.getItem("token");
@@ -43,19 +43,25 @@ export const logout = async () => {
 
 	try {
 		if (token) {
-			await axios.post(
-				`${API_URL}/api/auth/logout`,
-				{},
-				{
-					headers: {
-						Authorization: `Bearer ${token}`,
-					},
-				}
-			);
+			await axios
+				.post(
+					`${API_URL}/api/auth/logout`,
+					{},
+					{
+						headers: {
+							Authorization: `Bearer ${token}`,
+						},
+					}
+				)
+				.catch((err) => {
+					// Ignorer les erreurs de déconnexion côté serveur
+					console.warn("Erreur lors de la déconnexion côté serveur:", err);
+				});
 		}
 	} catch (error) {
 		console.error("Erreur de déconnexion :", error);
 	} finally {
+		// Toujours supprimer les données locales
 		localStorage.removeItem("token");
 		localStorage.removeItem("user");
 	}
