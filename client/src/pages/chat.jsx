@@ -1,8 +1,10 @@
 "use client"
 import { useState, useEffect } from "react"
 import { useNavigate, Link } from "react-router-dom"
+import { Search, Plus, Check } from "lucide-react"
 import "../index.css"
 import ChatDetail from "../components/chat-detail"
+import { fetchUsers } from "../services/userService"
 
 const Chat = () => {
   const navigate = useNavigate()
@@ -12,91 +14,44 @@ const Chat = () => {
   const [isMobileView, setIsMobileView] = useState(window.innerWidth < 768)
   const [showChatList, setShowChatList] = useState(true)
   const [currentUserId, setCurrentUserId] = useState("current-user")
-  const [contacts, setContacts] = useState([
-    {
-      id: "1",
-      name: "Badie dev",
-      initials: "BD",
-      online: true,
-      lastMessage: "👍",
-      date: "2023-05-02",
-      isYourMessage: true,
-      status: "read",
-    },
-    {
-      id: "2",
-      name: "mama Ima",
-      initials: "MI",
-      lastMessage: "hello",
-      date: "2023-02-26",
-      isYourMessage: true,
-      status: "delivered",
-    },
-    {
-      id: "3",
-      name: "test User",
-      initials: "TU",
-      lastMessage: "👍",
-      date: "2024-12-12",
-      isYourMessage: true,
-      status: "delivered",
-    },
-    {
-      id: "4",
-      name: "jawad amohoche",
-      initials: "JA",
-      lastMessage: "hello",
-      date: "2024-05-03",
-      isYourMessage: false,
-    },
-    {
-      id: "5",
-      name: "Marguerite Campbell",
-      initials: "MC",
-      online: true,
-      lastMessage: "Let's discuss the project tomorrow",
-      date: "2024-05-01",
-      isYourMessage: false,
-    },
-    {
-      id: "6",
-      name: "Katrina Winters",
-      initials: "KW",
-      lastMessage: "Thanks for the update",
-      date: "2024-04-30",
-      isYourMessage: true,
-      status: "read",
-    },
-    {
-      id: "7",
-      name: "Miranda Valentine",
-      initials: "MV",
-      lastMessage: "I'll check and get back to you",
-      date: "2024-04-29",
-      isYourMessage: false,
-    },
-  ])
+  const [contacts, setContacts] = useState([])
   const [searchQuery, setSearchQuery] = useState("")
+  const [isLoading, setIsLoading] = useState(true)
+  const [sidebarView, setSidebarView] = useState("chats") // "chats" or "contacts"
 
-  // Check if user is logged in
+  // Check if user is logged in and load contacts
   useEffect(() => {
-    const userData = localStorage.getItem("user")
-    if (!userData) {
-      navigate("/login")
-      return
+    const loadUserAndContacts = async () => {
+      setIsLoading(true)
+
+      // Check for user authentication
+      const userData = localStorage.getItem("user")
+      if (!userData) {
+        navigate("/login")
+        return
+      }
+
+      try {
+        // Parse user data
+        const user = JSON.parse(userData)
+        if (user.profileImage) {
+          setProfileImage(user.profileImage)
+        }
+        if (user.id) {
+          setCurrentUserId(user.id)
+        }
+
+        // Fetch contacts from database
+        const userContacts = await fetchUsers()
+        setContacts(userContacts)
+      } catch (error) {
+        console.error("Error loading data:", error)
+      } finally {
+        setIsLoading(false)
+      }
     }
 
-    try {
-      const user = JSON.parse(userData)
-      if (user.profileImage) {
-        setProfileImage(user.profileImage)
-      }
-      if (user.id) {
-        setCurrentUserId(user.id)
-      }
-    } catch (error) {
-      console.error("Error parsing user data:", error)
-    }
+    loadUserAndContacts()
   }, [navigate])
 
   // Handle window resize
@@ -116,6 +71,13 @@ const Chat = () => {
   // Handle icon click
   const handleIconClick = (iconName) => {
     setActiveIcon(iconName)
+
+    // Toggle sidebar view when clicking users icon
+    if (iconName === "users") {
+      setSidebarView("contacts")
+    } else if (iconName === "message-square") {
+      setSidebarView("chats")
+    }
   }
 
   // Handle chat selection
@@ -131,15 +93,25 @@ const Chat = () => {
     setShowChatList(true)
   }
 
+  // Handle profile picture upload completion
+  const handleProfilePictureUpdate = (imageUrl) => {
+    setProfileImage(imageUrl)
+
+    // Update user data in localStorage
+    try {
+      const userData = JSON.parse(localStorage.getItem("user") || "{}")
+      userData.profileImage = imageUrl
+      localStorage.setItem("user", JSON.stringify(userData))
+    } catch (error) {
+      console.error("Error updating profile picture in storage:", error)
+    }
+  }
+
   // Filter contacts based on search query
   const filteredContacts = contacts.filter((contact) => contact.name.toLowerCase().includes(searchQuery.toLowerCase()))
 
-  // Split contacts into favorites and direct messages
-  const favorites = filteredContacts.slice(0, 4)
-  const directMessages = filteredContacts.slice(4)
-
   return (
-    <main className="flex h-screen bg-gray-100 dark:bg-gray-900 overflow-hidden">
+    <main className="flex h-screen bg-[#1a2236] overflow-hidden">
       {/* Left navigation sidebar - fixed position */}
       <div className="fixed left-0 top-0 bottom-0 w-[60px] bg-[#2e2e2e] flex flex-col items-center py-6 z-10">
         {/* App logo */}
@@ -175,7 +147,6 @@ const Chat = () => {
             icon="message-square"
             active={activeIcon === "message-square"}
             onClick={() => handleIconClick("message-square")}
-            to="/chat" // Direct link to chat page
           />
           <NavIcon icon="users" active={activeIcon === "users"} onClick={() => handleIconClick("users")} />
           <NavIcon icon="phone" active={activeIcon === "phone"} onClick={() => handleIconClick("phone")} />
@@ -202,14 +173,20 @@ const Chat = () => {
           </button>
         </div>
 
-        {/* Profile picture - now with direct link */}
-        <div className="mt-2">
+        {/* Profile picture with uploader */}
+        <div className="mt-2 relative group">
           <Link
             to="/profile"
             className="block w-10 h-10 rounded-full overflow-hidden border-2 border-green-500 transition-all hover:scale-110 hover:border-green-400 duration-300 focus:outline-none"
           >
             <img src={profileImage || "/placeholder.svg"} alt="User profile" className="object-cover w-full h-full" />
           </Link>
+
+          {/* Profile picture upload overlay - shows on hover */}
+          <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+            <div className="absolute inset-0 bg-black bg-opacity-50 rounded-full"></div>
+            <ProfilePictureUploader userId={currentUserId} onUploadComplete={handleProfilePictureUpdate} />
+          </div>
         </div>
       </div>
 
@@ -218,77 +195,59 @@ const Chat = () => {
         {/* Chat list sidebar - conditionally shown on mobile */}
         {(showChatList || !isMobileView) && (
           <div className={`${isMobileView ? "w-full" : "w-[320px]"} overflow-y-auto`}>
-            <div className="h-full bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col">
+            <div className="h-full bg-[#1a2236] border-r border-[#2a3447] flex flex-col">
               {/* Header */}
-              <div className="p-4 flex justify-between items-center border-b border-gray-200 dark:border-gray-700">
-                <h1 className="text-xl font-semibold text-gray-800 dark:text-gray-200">Chats</h1>
-                <button className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors hover:rotate-90 transition-transform duration-300">
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="18"
-                    height="18"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <line x1="12" y1="5" x2="12" y2="19"></line>
-                    <line x1="5" y1="12" x2="19" y2="12"></line>
-                  </svg>
+              <div className="p-4 flex justify-between items-center">
+                <h1 className="text-xl font-semibold text-white">
+                  {sidebarView === "contacts" ? "Contacts" : "Chats"}
+                </h1>
+                <button className="w-10 h-10 flex items-center justify-center rounded-full bg-[#2a3447] text-gray-300 hover:bg-[#3a4457] transition-colors">
+                  <Plus size={20} />
                 </button>
               </div>
 
               {/* Search */}
-              <div className="p-4">
+              <div className="px-4 pb-4">
                 <div className="relative">
                   <input
                     type="text"
                     placeholder="Search here.."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-md py-2 pl-4 pr-10 focus:outline-none focus:ring-1 focus:ring-green-500 transition-all duration-300 focus:shadow-md"
+                    className="w-full bg-[#2a3447] text-gray-200 rounded-md py-2 pl-4 pr-10 focus:outline-none"
                   />
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="20"
-                    height="20"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    className="absolute right-3 top-2.5 text-gray-400"
-                  >
-                    <circle cx="11" cy="11" r="8"></circle>
-                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-                  </svg>
+                  <Search className="absolute right-3 top-2.5 text-gray-400 h-5 w-5" />
                 </div>
               </div>
 
-              {/* Chat list content */}
+              
+
+              {/* Contacts or Chats list */}
               <div className="flex-1 overflow-y-auto">
-                {/* All chats */}
-                <div className="divide-y divide-gray-200 dark:divide-gray-700">
-                  {filteredContacts.length > 0 ? (
-                    filteredContacts.map((contact) => (
-                      <ContactItem
-                        key={contact.id}
-                        contact={contact}
-                        isSelected={selectedChat?.id === contact.id}
-                        onClick={() => handleChatSelect(contact)}
-                      />
-                    ))
-                  ) : (
-                    <div className="px-4 py-8 text-center">
-                      <p className="text-gray-500 dark:text-gray-400">
-                        {searchQuery ? `No contacts found for "${searchQuery}"` : "No contacts available"}
-                      </p>
-                    </div>
-                  )}
-                </div>
+                {isLoading ? (
+                  <div className="flex justify-center items-center h-32">
+                    <div className="w-8 h-8 border-4 border-green-500 border-t-transparent rounded-full animate-spin"></div>
+                  </div>
+                ) : (
+                  <div>
+                    {filteredContacts.length > 0 ? (
+                      filteredContacts.map((contact) => (
+                        <ChatItem
+                          key={contact.id}
+                          contact={contact}
+                          onClick={() => handleChatSelect(contact)}
+                          isSelected={selectedChat?.id === contact.id}
+                        />
+                      ))
+                    ) : (
+                      <div className="px-4 py-8 text-center">
+                        <p className="text-gray-400">
+                          {searchQuery ? `No contacts found for "${searchQuery}"` : "No contacts available"}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -319,11 +278,9 @@ const Chat = () => {
                     </svg>
                   </div>
 
-                  <h1 className="text-2xl font-semibold text-gray-800 dark:text-gray-200 mb-4">
-                    Welcome to SoussTalk Chat App
-                  </h1>
+                  <h1 className="text-2xl font-semibold text-gray-200 mb-4">Welcome to SoussTalk Chat App</h1>
 
-                  <p className="text-gray-600 dark:text-gray-400 mb-8">
+                  <p className="text-gray-400 mb-8">
                     Select a chat from the sidebar or start a new conversation to begin messaging.
                   </p>
 
@@ -340,83 +297,69 @@ const Chat = () => {
   )
 }
 
-// Contact Item Component
-function ContactItem({ contact, isSelected, onClick }) {
+// Chat Item Component
+function ChatItem({ contact, onClick, isSelected }) {
+  // Format message preview
+  const getMessagePreview = () => {
+    if (contact.isYourMessage) {
+      return (
+        <div className="flex items-center">
+          <span className="text-gray-400 mr-1">You:</span>
+          <span className="text-gray-400 truncate">{contact.lastMessage}</span>
+        </div>
+      )
+    } else if (contact.lastMessage) {
+      return <span className="text-gray-400 truncate">{contact.lastMessage}</span>
+    }
+    return null
+  }
+
   return (
     <div
-      className={`flex items-center p-3 cursor-pointer ${
-        isSelected ? "bg-green-50 dark:bg-green-900/20" : "hover:bg-gray-100 dark:hover:bg-gray-700"
-      }`}
+      className={`flex items-center px-4 py-3 cursor-pointer ${isSelected ? "bg-[#2a3447]" : "hover:bg-[#2a3447]"}`}
       onClick={onClick}
     >
       {/* User avatar */}
       <div className="relative mr-3">
-        <div
-          className={`h-10 w-10 rounded-full flex items-center justify-center ${
-            contact.name.includes("Miranda Valentine") || contact.name.includes("Dean Vargas")
-              ? "bg-purple-100 text-purple-600"
-              : contact.name.includes("Zimmerman") || contact.name.includes("Badie")
-                ? "bg-gray-100 text-gray-600"
-                : "bg-green-100 text-green-600"
-          }`}
-        >
-          {contact.avatar ? (
-            <img
-              src={contact.avatar || "/placeholder.svg"}
-              alt={contact.name}
-              className="h-full w-full rounded-full object-cover"
-            />
-          ) : (
+        {contact.avatar ? (
+          <img
+            src={contact.avatar || "/placeholder.svg"}
+            alt={contact.name}
+            className="h-10 w-10 rounded-full object-cover"
+          />
+        ) : (
+          <div
+            className={`h-10 w-10 rounded-full flex items-center justify-center ${
+              contact.name.includes("Miranda Valentine") || contact.name.includes("Dean Vargas")
+                ? "bg-purple-100 text-purple-600"
+                : contact.name.includes("Zimmerman") || contact.name.includes("Badie")
+                  ? "bg-gray-100 text-gray-600"
+                  : "bg-green-100 text-green-600"
+            }`}
+          >
             <span className="font-medium">{contact.initials}</span>
-          )}
-        </div>
+          </div>
+        )}
         {contact.online && (
-          <span className="absolute bottom-0 right-0 block h-2.5 w-2.5 rounded-full bg-green-500 ring-2 ring-white dark:ring-gray-800" />
+          <span className="absolute bottom-0 right-0 block h-2.5 w-2.5 rounded-full bg-green-500 ring-1 ring-[#1a2236]" />
         )}
       </div>
 
       {/* Message content */}
-      <div className="flex-1 min-w-0">
+      <div className="flex-1 min-w-0 pr-2">
         <div className="flex justify-between items-center mb-1">
-          <p className="text-sm font-medium text-gray-800 dark:text-gray-200 truncate">{contact.name}</p>
-          <span className="text-xs text-gray-500 whitespace-nowrap ml-2">{contact.date}</span>
+          <p className="text-sm font-medium text-white truncate">{contact.name}</p>
+          <span className="text-xs text-gray-400 whitespace-nowrap ml-2">{contact.date}</span>
         </div>
-        <div className="flex items-center">
-          {contact.isYourMessage && <span className="text-xs font-medium text-gray-500 mr-1">You:</span>}
-          <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{contact.lastMessage}</p>
+        <div className="flex items-center justify-between">
+          <div className="flex-1 min-w-0">{getMessagePreview()}</div>
 
           {contact.isYourMessage && (
-            <div className="ml-auto pl-2">
+            <div className="ml-2">
               {contact.status === "read" ? (
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="16"
-                  height="16"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  className="text-blue-500"
-                >
-                  <polyline points="20 6 9 17 4 12"></polyline>
-                </svg>
+                <Check size={16} className="text-blue-500" />
               ) : (
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="16"
-                  height="16"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  className="text-gray-400"
-                >
-                  <polyline points="20 6 9 17 4 12"></polyline>
-                </svg>
+                <Check size={16} className="text-gray-500" />
               )}
             </div>
           )}

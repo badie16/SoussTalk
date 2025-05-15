@@ -236,3 +236,25 @@ export const deleteAccount = async (userId) => {
 		return { success: false, message };
 	}
 };
+// Rechercher des utilisateurs
+export const fetchUsers = async (searchQuery) => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      return { success: false, message: "Utilisateur non connecté." };
+    }
+  
+    try {
+      const response = await axios.get(`${API_URL}/api/users/search?q=${searchQuery}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+  
+      return { success: true, data: response.data };
+    } catch (error) {
+      console.error("Erreur recherche utilisateurs:", error);
+      const message = error.response?.data?.message || "Erreur lors de la recherche";
+      return { success: false, message };
+    }
+  };
+  
