@@ -1,14 +1,30 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Edit2, Camera, Check, X } from "lucide-react";
-import { getUserProfile } from "../services/userService";
-
+import {
+	ArrowLeft,
+	Edit2,
+	Camera,
+	Check,
+	X,
+	AlertCircle,
+	Lock,
+	Eye,
+	EyeOff,
+} from "lucide-react";
+import {
+	getUserProfile,
+	updateUserProfile,
+	updateUserAvatar,
+	changePassword,
+} from "../services/userService";
+import { logout } from "../services/authService";
 import "../index.css";
 
 const Profile = () => {
 	const navigate = useNavigate();
 
+	// États pour les données du profil
 	const [profile, setProfile] = useState({
 		name: "",
 		email: "",
@@ -16,6 +32,8 @@ const Profile = () => {
 		bio: "",
 		profileImage: "/placeholder.svg",
 	});
+
+	// États pour l'édition
 	const [isEditing, setIsEditing] = useState(false);
 	const [editedData, setEditedData] = useState({
 		name: "",
@@ -23,87 +41,102 @@ const Profile = () => {
 		phone: "",
 		bio: "",
 	});
-	// Supprimer cette section dupliquée
-	// const Profile = () => {
-	//   useEffect(() => {
-	//     const fetchProfile = async () => {
-	//       const currentUser = currentUser()
-	//       if (currentUser?.id) {
-	//         const { success, data, message } = await getUserProfile(currentUser.id)
-	//         if (success) {
-	//           console.log("Profil :", data)
-	//         } else {
-	//           console.error("Erreur profil :", message)
-	//         }
-	//       }
-	//     }
-	//
-	//     fetchProfile()
-	//   }, [])
-	//
-	//   return <div>Page Profil</div>
-	// }
 
+	// États pour le changement de mot de passe
+	const [isChangingPassword, setIsChangingPassword] = useState(false);
+	const [passwordData, setPasswordData] = useState({
+		currentPassword: "",
+		newPassword: "",
+		confirmPassword: "",
+	});
+	const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+	const [showNewPassword, setShowNewPassword] = useState(false);
+
+	// États pour le chargement et les erreurs
 	const [isLoading, setIsLoading] = useState(false);
+	const [error, setError] = useState("");
+	const [successMessage, setSuccessMessage] = useState("");
 
-	// Load user data from Supabase
-	useEffect(() => {
-		const loadUserData = async () => {
-			setIsLoading(true);
-			try {
-				const user = JSON.parse(localStorage.getItem("user") || "{}");
-				if (!user.id) {
-					navigate("/login");
-					return;
-				}
+	// État pour suivre l'utilisateur actuel
+	const [currentUser, setCurrentUser] = useState(null);
 
-				// Corriger l'appel à getUserProfile pour utiliser correctement la réponse
-				const response = await getUserProfile(user.id);
-				const profileData =
-					response.success && response.data ? response.data : {};
+	// Charger les données du profil
+	const loadUserData = useCallback(async () => {
+		setIsLoading(true);
+		setError("");
 
-				setProfile({
-					name: `${profileData.first_name || ""} ${
-						profileData.last_name || ""
-					}`,
-					email: profileData.email || "",
-					phone: profileData.phone_number || "",
-					bio: profileData.bio || "No bio available",
-					profileImage: profileData.avatar_url || "/placeholder.svg",
-				});
+		try {
+			const user = JSON.parse(localStorage.getItem("user") || "{}");
+			setCurrentUser(user);
 
-				setEditedData({
-					name: `${profileData.first_name || ""} ${
-						profileData.last_name || ""
-					}`,
-					email: profileData.email || "",
-					phone: profileData.phone_number || "",
-					bio: profileData.bio || "",
-				});
-			} catch (error) {
-				console.error("Error loading profile data:", error);
-				alert("Failed to load profile");
-			} finally {
-				setIsLoading(false);
+			if (!user.id) {
+				navigate("/login");
+				return;
 			}
-		};
 
+			// Afficher l'ID utilisateur pour le débogage
+			console.log("Chargement du profil pour l'utilisateur ID:", user.id);
+
+			const response = await getUserProfile(user.id);
+
+			if (!response.success) {
+				setError(response.message || "Erreur lors du chargement du profil");
+				console.error("Échec du chargement du profil:", response.message);
+				return;
+			}
+
+			const profileData = response.data || {};
+			console.log("Données du profil reçues:", profileData);
+
+			// Formater les données du profil
+			setProfile({
+				name: `${profileData.first_name || ""} ${
+					profileData.last_name || ""
+				}`.trim(),
+				email: profileData.email || "",
+				phone: profileData.phone_number || "",
+				bio: profileData.bio || "No bio available",
+				profileImage: profileData.avatar_url || "/placeholder.svg",
+			});
+
+			// Initialiser les données d'édition
+			setEditedData({
+				name: `${profileData.first_name || ""} ${
+					profileData.last_name || ""
+				}`.trim(),
+				email: profileData.email || "",
+				phone: profileData.phone_number || "",
+				bio: profileData.bio || "",
+			});
+		} catch (error) {
+			console.error("Error loading profile data:", error);
+			setError("Failed to load profile. Please try again.");
+		} finally {
+			setIsLoading(false);
+		}
+	}, [navigate]);
+
+	// Charger les données au montage du composant
+	useEffect(() => {
 		loadUserData();
-	}, [navigate]); // Ajouter navigate comme dépendance
+	}, [loadUserData]);
 
+	// Gérer le basculement du mode édition
 	const handleEditToggle = () => {
 		if (isEditing) {
-			// Cancel editing
+			// Annuler l'édition
 			setEditedData({
 				name: profile.name,
 				email: profile.email,
 				phone: profile.phone,
 				bio: profile.bio,
 			});
+			setError("");
 		}
 		setIsEditing(!isEditing);
 	};
 
+	// Gérer les changements dans les champs d'édition
 	const handleInputChange = (e) => {
 		const { name, value } = e.target;
 		setEditedData((prev) => ({
@@ -112,46 +145,206 @@ const Profile = () => {
 		}));
 	};
 
+	// Gérer les changements dans les champs de mot de passe
+	const handlePasswordChange = (e) => {
+		const { name, value } = e.target;
+		setPasswordData((prev) => ({
+			...prev,
+			[name]: value,
+		}));
+	};
+
+	// Gérer le téléchargement d'image
 	const handleImageUpload = async (e) => {
 		const file = e.target.files?.[0];
 		if (!file) return;
 
-		if (file.size > 1024 * 1024) {
-			alert("Image size should be less than 1MB");
+		// Validation côté client
+		if (!file.type.startsWith("image/")) {
+			setError("Please select an image file (JPG, PNG, etc.)");
+			return;
+		}
+
+		if (file.size > 2 * 1024 * 1024) {
+			setError("Image size should be less than 2MB");
 			return;
 		}
 
 		setIsLoading(true);
+		setError("");
+
 		try {
-			const user = JSON.parse(localStorage.getItem("user") || "{}");
-			if (!user.id) {
+			if (!currentUser?.id) {
 				navigate("/login");
 				return;
+			}
+
+			const result = await updateUserAvatar(currentUser.id, file);
+
+			if (result.success) {
+				setProfile((prev) => ({
+					...prev,
+					profileImage: result.data.avatar_url,
+				}));
+				setSuccessMessage("Profile picture updated successfully!");
+
+				// Effacer le message de succès après 3 secondes
+				setTimeout(() => setSuccessMessage(""), 3000);
+			} else {
+				setError(result.message);
 			}
 		} catch (error) {
 			console.error("Error uploading image:", error);
-			alert("Failed to upload image");
+			setError("Failed to upload image. Please try again.");
 		} finally {
 			setIsLoading(false);
 		}
 	};
 
+	// Sauvegarder les modifications du profil
 	const handleSaveChanges = async () => {
+		// Validation des données
+		if (!editedData.name.trim()) {
+			setError("Name cannot be empty");
+			return;
+		}
+
+		if (!editedData.email.trim()) {
+			setError("Email cannot be empty");
+			return;
+		}
+
+		// Validation simple de l'email
+		const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+		if (!emailRegex.test(editedData.email)) {
+			setError("Please enter a valid email address");
+			return;
+		}
+
 		setIsLoading(true);
+		setError("");
+
 		try {
-			const user = JSON.parse(localStorage.getItem("user") || "{}");
-			if (!user.id) {
+			if (!currentUser?.id) {
 				navigate("/login");
 				return;
 			}
+
+			// Séparer le nom complet en prénom et nom
+			const nameParts = editedData.name.trim().split(" ");
+			const firstName = nameParts[0] || "";
+			const lastName = nameParts.slice(1).join(" ") || "";
+
+			const userData = {
+				first_name: firstName,
+				last_name: lastName,
+				email: editedData.email,
+				phone_number: editedData.phone,
+				bio: editedData.bio,
+			};
+
+			const result = await updateUserProfile(currentUser.id, userData);
+
+			if (result.success) {
+				// Mettre à jour l'état du profil
+				setProfile({
+					name: editedData.name,
+					email: editedData.email,
+					phone: editedData.phone,
+					bio: editedData.bio,
+					profileImage: profile.profileImage,
+				});
+
+				setIsEditing(false);
+				setSuccessMessage("Profile updated successfully!");
+
+				// Effacer le message de succès après 3 secondes
+				setTimeout(() => setSuccessMessage(""), 3000);
+			} else {
+				setError(result.message);
+			}
 		} catch (error) {
 			console.error("Error saving profile changes:", error);
-			alert("Failed to save changes. Please try again.");
+			setError("Failed to save changes. Please try again.");
 		} finally {
 			setIsLoading(false);
 		}
 	};
 
+	// Gérer le changement de mot de passe
+	const handleSavePassword = async () => {
+		// Validation des mots de passe
+		if (!passwordData.currentPassword) {
+			setError("Current password is required");
+			return;
+		}
+
+		if (!passwordData.newPassword) {
+			setError("New password is required");
+			return;
+		}
+
+		if (passwordData.newPassword.length < 8) {
+			setError("New password must be at least 8 characters long");
+			return;
+		}
+
+		if (passwordData.newPassword !== passwordData.confirmPassword) {
+			setError("New passwords do not match");
+			return;
+		}
+
+		setIsLoading(true);
+		setError("");
+
+		try {
+			if (!currentUser?.id) {
+				navigate("/login");
+				return;
+			}
+
+			const result = await changePassword(
+				currentUser.id,
+				passwordData.currentPassword,
+				passwordData.newPassword
+			);
+
+			if (result.success) {
+				setIsChangingPassword(false);
+				setPasswordData({
+					currentPassword: "",
+					newPassword: "",
+					confirmPassword: "",
+				});
+				setSuccessMessage("Password changed successfully!");
+
+				// Effacer le message de succès après 3 secondes
+				setTimeout(() => setSuccessMessage(""), 3000);
+			} else {
+				setError(result.message);
+			}
+		} catch (error) {
+			console.error("Error changing password:", error);
+			setError("Failed to change password. Please try again.");
+		} finally {
+			setIsLoading(false);
+		}
+	};
+
+	// Gérer la déconnexion
+	const handleLogout = async () => {
+		setIsLoading(true);
+		try {
+			await logout();
+			navigate("/login");
+		} catch (error) {
+			console.error("Error during logout:", error);
+		} finally {
+			setIsLoading(false);
+		}
+	};
+
+	// Retourner à la page de chat
 	const handleBackToChat = () => {
 		navigate("/chat");
 	};
@@ -204,6 +397,35 @@ const Profile = () => {
 				</div>
 			</div>
 
+			{/* Messages de succès et d'erreur */}
+			{successMessage && (
+				<div className="max-w-3xl mx-auto mt-4 px-4">
+					<div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded-lg flex items-start">
+						<Check size={20} className="mr-2 flex-shrink-0 mt-0.5" />
+						<span>{successMessage}</span>
+					</div>
+				</div>
+			)}
+
+			{error && (
+				<div className="max-w-3xl mx-auto mt-4 px-4">
+					<div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg flex items-start">
+						<AlertCircle size={20} className="mr-2 flex-shrink-0 mt-0.5" />
+						<span>{error}</span>
+					</div>
+				</div>
+			)}
+
+			{/* Indicateur de chargement global */}
+			{isLoading && !isEditing && (
+				<div className="max-w-3xl mx-auto mt-4 px-4">
+					<div className="bg-blue-50 text-blue-700 px-4 py-3 rounded-lg flex items-center justify-center">
+						<div className="w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mr-2"></div>
+						<span>Loading...</span>
+					</div>
+				</div>
+			)}
+
 			{/* Profile Content */}
 			<div className="max-w-3xl mx-auto px-4 py-6">
 				{/* Profile Header */}
@@ -237,6 +459,7 @@ const Profile = () => {
 								accept="image/*"
 								className="hidden"
 								onChange={handleImageUpload}
+								disabled={isLoading}
 							/>
 						</div>
 
@@ -254,10 +477,11 @@ const Profile = () => {
 										value={editedData.name}
 										onChange={handleInputChange}
 										className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-green-500 focus:border-green-500 dark:bg-gray-700 dark:text-white"
+										placeholder="Your full name"
 									/>
 								) : (
 									<p className="text-lg font-semibold text-gray-800 dark:text-gray-200">
-										{profile.name}
+										{profile.name || "Not set"}
 									</p>
 								)}
 							</div>
@@ -274,6 +498,7 @@ const Profile = () => {
 										value={editedData.email}
 										onChange={handleInputChange}
 										className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-green-500 focus:border-green-500 dark:bg-gray-700 dark:text-white"
+										placeholder="your@email.com"
 									/>
 								) : (
 									<div className="flex items-center">
@@ -293,7 +518,7 @@ const Profile = () => {
 											<polyline points="22,6 12,13 2,6"></polyline>
 										</svg>
 										<p className="text-gray-800 dark:text-gray-200">
-											{profile.email}
+											{profile.email || "Not set"}
 										</p>
 									</div>
 								)}
@@ -311,6 +536,7 @@ const Profile = () => {
 										value={editedData.phone}
 										onChange={handleInputChange}
 										className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-green-500 focus:border-green-500 dark:bg-gray-700 dark:text-white"
+										placeholder="+212 6XX XXX XXX"
 									/>
 								) : (
 									<div className="flex items-center">
@@ -329,7 +555,7 @@ const Profile = () => {
 											<path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
 										</svg>
 										<p className="text-gray-800 dark:text-gray-200">
-											{profile.phone}
+											{profile.phone || "Not set"}
 										</p>
 									</div>
 								)}
@@ -347,15 +573,148 @@ const Profile = () => {
 										onChange={handleInputChange}
 										rows={4}
 										className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-green-500 focus:border-green-500 dark:bg-gray-700 dark:text-white"
+										placeholder="Tell us about yourself..."
 									></textarea>
 								) : (
 									<p className="text-gray-800 dark:text-gray-200 whitespace-pre-line">
-										{profile.bio}
+										{profile.bio || "No bio available"}
 									</p>
 								)}
 							</div>
 						</div>
 					</div>
+				</div>
+
+				{/* Password Change Section */}
+				<div className="mt-6 bg-white dark:bg-gray-800 rounded-lg shadow-sm overflow-hidden">
+					<div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
+						<h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200">
+							Change Password
+						</h2>
+						<button
+							onClick={() => setIsChangingPassword(!isChangingPassword)}
+							className="text-green-600 hover:text-green-700 text-sm font-medium"
+						>
+							{isChangingPassword ? "Cancel" : "Change"}
+						</button>
+					</div>
+
+					{isChangingPassword ? (
+						<div className="px-6 py-4 space-y-4">
+							{/* Current Password */}
+							<div>
+								<label
+									htmlFor="currentPassword"
+									className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+								>
+									Current Password
+								</label>
+								<div className="relative">
+									<input
+										id="currentPassword"
+										name="currentPassword"
+										type={showCurrentPassword ? "text" : "password"}
+										value={passwordData.currentPassword}
+										onChange={handlePasswordChange}
+										className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-green-500 focus:border-green-500 dark:bg-gray-700 dark:text-white"
+										placeholder="Enter your current password"
+									/>
+									<button
+										type="button"
+										onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+										className="absolute inset-y-0 right-0 pr-3 flex items-center"
+									>
+										{showCurrentPassword ? (
+											<EyeOff size={18} className="text-gray-400" />
+										) : (
+											<Eye size={18} className="text-gray-400" />
+										)}
+									</button>
+								</div>
+							</div>
+
+							{/* New Password */}
+							<div>
+								<label
+									htmlFor="newPassword"
+									className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+								>
+									New Password
+								</label>
+								<div className="relative">
+									<input
+										id="newPassword"
+										name="newPassword"
+										type={showNewPassword ? "text" : "password"}
+										value={passwordData.newPassword}
+										onChange={handlePasswordChange}
+										className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-green-500 focus:border-green-500 dark:bg-gray-700 dark:text-white"
+										placeholder="Enter new password"
+									/>
+									<button
+										type="button"
+										onClick={() => setShowNewPassword(!showNewPassword)}
+										className="absolute inset-y-0 right-0 pr-3 flex items-center"
+									>
+										{showNewPassword ? (
+											<EyeOff size={18} className="text-gray-400" />
+										) : (
+											<Eye size={18} className="text-gray-400" />
+										)}
+									</button>
+								</div>
+								<p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+									Password must be at least 8 characters long
+								</p>
+							</div>
+
+							{/* Confirm New Password */}
+							<div>
+								<label
+									htmlFor="confirmPassword"
+									className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+								>
+									Confirm New Password
+								</label>
+								<input
+									id="confirmPassword"
+									name="confirmPassword"
+									type="password"
+									value={passwordData.confirmPassword}
+									onChange={handlePasswordChange}
+									className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-green-500 focus:border-green-500 dark:bg-gray-700 dark:text-white"
+									placeholder="Confirm new password"
+								/>
+							</div>
+
+							<div className="pt-2">
+								<button
+									onClick={handleSavePassword}
+									disabled={isLoading}
+									className="w-full flex justify-center items-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50"
+								>
+									{isLoading ? (
+										<>
+											<div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+											Updating...
+										</>
+									) : (
+										<>
+											<Lock size={16} className="mr-2" />
+											Update Password
+										</>
+									)}
+								</button>
+							</div>
+						</div>
+					) : (
+						<div className="px-6 py-4">
+							<p className="text-gray-600 dark:text-gray-400 text-sm">
+								For security reasons, we recommend changing your password
+								regularly.
+							</p>
+						</div>
+					)}
 				</div>
 
 				{/* Account Settings Section */}
@@ -375,10 +734,7 @@ const Profile = () => {
 								icon="log-out"
 								title="Logout"
 								danger
-								onClick={() => {
-									localStorage.removeItem("user");
-									navigate("/login");
-								}}
+								onClick={handleLogout}
 							/>
 						</ul>
 					</div>
