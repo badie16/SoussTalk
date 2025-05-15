@@ -2,61 +2,141 @@
 import { useState, useEffect } from "react"
 import { useNavigate, Link } from "react-router-dom"
 import "../index.css"
+import ChatDetail from "../components/chat-detail"
 
 const Chat = () => {
   const navigate = useNavigate()
   const [profileImage, setProfileImage] = useState("/placeholder.svg")
   const [activeIcon, setActiveIcon] = useState("message-square")
-  const [isLoading, setIsLoading] = useState(true)
+  const [selectedChat, setSelectedChat] = useState(null)
+  const [isMobileView, setIsMobileView] = useState(window.innerWidth < 768)
+  const [showChatList, setShowChatList] = useState(true)
+  const [currentUserId, setCurrentUserId] = useState("current-user")
+  const [contacts, setContacts] = useState([
+    {
+      id: "1",
+      name: "Badie dev",
+      initials: "BD",
+      online: true,
+      lastMessage: "👍",
+      date: "2023-05-02",
+      isYourMessage: true,
+      status: "read",
+    },
+    {
+      id: "2",
+      name: "mama Ima",
+      initials: "MI",
+      lastMessage: "hello",
+      date: "2023-02-26",
+      isYourMessage: true,
+      status: "delivered",
+    },
+    {
+      id: "3",
+      name: "test User",
+      initials: "TU",
+      lastMessage: "👍",
+      date: "2024-12-12",
+      isYourMessage: true,
+      status: "delivered",
+    },
+    {
+      id: "4",
+      name: "jawad amohoche",
+      initials: "JA",
+      lastMessage: "hello",
+      date: "2024-05-03",
+      isYourMessage: false,
+    },
+    {
+      id: "5",
+      name: "Marguerite Campbell",
+      initials: "MC",
+      online: true,
+      lastMessage: "Let's discuss the project tomorrow",
+      date: "2024-05-01",
+      isYourMessage: false,
+    },
+    {
+      id: "6",
+      name: "Katrina Winters",
+      initials: "KW",
+      lastMessage: "Thanks for the update",
+      date: "2024-04-30",
+      isYourMessage: true,
+      status: "read",
+    },
+    {
+      id: "7",
+      name: "Miranda Valentine",
+      initials: "MV",
+      lastMessage: "I'll check and get back to you",
+      date: "2024-04-29",
+      isYourMessage: false,
+    },
+  ])
+  const [searchQuery, setSearchQuery] = useState("")
 
-  // Vérification d'authentification améliorée
+  // Check if user is logged in
   useEffect(() => {
-    const checkAuth = async () => {
-      setIsLoading(true)
-      
-      // 1. Vérifier les éléments essentiels dans localStorage
-      const token = localStorage.getItem("token")
-      const user = localStorage.getItem("user")
-      
-      // 2. Si données manquantes, rediriger vers login
-      if (!token || !user) {
-        localStorage.removeItem("token")
-        localStorage.removeItem("user")
-        navigate("/login", { replace: true })
-        return
-      }
+    const userData = localStorage.getItem("user")
+    if (!userData) {
+      navigate("/login")
+      return
+    }
 
-      try {
-        // 3. Parser les données utilisateur
-        const userData = JSON.parse(user)
-        
-        // 4. Mettre à jour l'image de profil si disponible
-        if (userData?.avatar_url) {  // Modifié pour correspondre à votre schéma de données
-          setProfileImage(userData.avatar_url)
-        }
-      } catch (error) {
-        console.error("Error parsing user data:", error)
-        navigate("/login", { replace: true })
-      } finally {
-        setIsLoading(false)
+    try {
+      const user = JSON.parse(userData)
+      if (user.profileImage) {
+        setProfileImage(user.profileImage)
+      }
+      if (user.id) {
+        setCurrentUserId(user.id)
+      }
+    } catch (error) {
+      console.error("Error parsing user data:", error)
+    }
+  }, [navigate])
+
+  // Handle window resize
+  useEffect(() => {
+    const handleResize = () => {
+      const mobile = window.innerWidth < 768
+      setIsMobileView(mobile)
+      if (!mobile) {
+        setShowChatList(true)
       }
     }
 
-    checkAuth()
-  }, [navigate])
-
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-green-500"></div>
-      </div>
-    )
-  }
+    window.addEventListener("resize", handleResize)
+    return () => window.removeEventListener("resize", handleResize)
+  }, [])
 
   // Handle icon click
   const handleIconClick = (iconName) => {
     setActiveIcon(iconName)
   }
+
+  // Handle chat selection
+  const handleChatSelect = (chat) => {
+    setSelectedChat(chat)
+    if (isMobileView) {
+      setShowChatList(false)
+    }
+  }
+
+  // Handle back button in mobile view
+  const handleBackToList = () => {
+    setShowChatList(true)
+  }
+
+  // Filter contacts based on search query
+  const filteredContacts = contacts.filter((contact) => contact.name.toLowerCase().includes(searchQuery.toLowerCase()))
+
+  // Split contacts into favorites and direct messages
+  const favorites = filteredContacts.slice(0, 4)
+  const directMessages = filteredContacts.slice(4)
 
   return (
     <main className="flex h-screen bg-gray-100 dark:bg-gray-900 overflow-hidden">
@@ -135,99 +215,214 @@ const Chat = () => {
 
       {/* Content area - with left margin to account for fixed sidebar */}
       <div className="flex flex-1 ml-[60px]">
-        {/* Chat list sidebar - scrollable */}
-        <div className="w-[320px] overflow-y-auto">
-          <div className="h-full bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col">
-            {/* Header */}
-            <div className="p-4 flex justify-between items-center border-b border-gray-200 dark:border-gray-700">
-              <h1 className="text-xl font-semibold text-gray-800 dark:text-gray-200">Chats</h1>
-              <button className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors hover:rotate-90 transition-transform duration-300">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="18"
-                  height="18"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <line x1="12" y1="5" x2="12" y2="19"></line>
-                  <line x1="5" y1="12" x2="19" y2="12"></line>
-                </svg>
-              </button>
-            </div>
+        {/* Chat list sidebar - conditionally shown on mobile */}
+        {(showChatList || !isMobileView) && (
+          <div className={`${isMobileView ? "w-full" : "w-[320px]"} overflow-y-auto`}>
+            <div className="h-full bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col">
+              {/* Header */}
+              <div className="p-4 flex justify-between items-center border-b border-gray-200 dark:border-gray-700">
+                <h1 className="text-xl font-semibold text-gray-800 dark:text-gray-200">Chats</h1>
+                <button className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors hover:rotate-90 transition-transform duration-300">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="18"
+                    height="18"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                  </svg>
+                </button>
+              </div>
 
-            {/* Search */}
-            <div className="p-4">
-              <div className="relative">
-                <input
-                  type="text"
-                  placeholder="Search here.."
-                  className="w-full bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-md py-2 pl-4 pr-10 focus:outline-none focus:ring-1 focus:ring-green-500 transition-all duration-300 focus:shadow-md"
-                />
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="20"
-                  height="20"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  className="absolute right-3 top-2.5 text-gray-400"
-                >
-                  <circle cx="11" cy="11" r="8"></circle>
-                  <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-                </svg>
+              {/* Search */}
+              <div className="p-4">
+                <div className="relative">
+                  <input
+                    type="text"
+                    placeholder="Search here.."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="w-full bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-md py-2 pl-4 pr-10 focus:outline-none focus:ring-1 focus:ring-green-500 transition-all duration-300 focus:shadow-md"
+                  />
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className="absolute right-3 top-2.5 text-gray-400"
+                  >
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                  </svg>
+                </div>
+              </div>
+
+              {/* Chat list content */}
+              <div className="flex-1 overflow-y-auto">
+                {/* All chats */}
+                <div className="divide-y divide-gray-200 dark:divide-gray-700">
+                  {filteredContacts.length > 0 ? (
+                    filteredContacts.map((contact) => (
+                      <ContactItem
+                        key={contact.id}
+                        contact={contact}
+                        isSelected={selectedChat?.id === contact.id}
+                        onClick={() => handleChatSelect(contact)}
+                      />
+                    ))
+                  ) : (
+                    <div className="px-4 py-8 text-center">
+                      <p className="text-gray-500 dark:text-gray-400">
+                        {searchQuery ? `No contacts found for "${searchQuery}"` : "No contacts available"}
+                      </p>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
-
-            {/* Chat list content - Add your contacts/chats here */}
-            <div className="flex-1 overflow-y-auto p-4">
-              <h2 className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-3 tracking-wider">FAVOURITES</h2>
-              {/* Add your contacts here */}
-            </div>
           </div>
-        </div>
+        )}
 
         {/* Main content area - scrollable */}
-        <div className="flex-1 p-6 overflow-y-auto flex items-center justify-center">
-          <div className="text-center max-w-md w-full">
-            <div className="mx-auto w-24 h-24 bg-green-100 rounded-full flex items-center justify-center mb-6">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="48"
-                height="48"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className="text-green-600"
-              >
-                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
-              </svg>
-            </div>
+        {(!showChatList || !isMobileView) && (
+          <div className={`${isMobileView ? "w-full" : "flex-1"} overflow-hidden`}>
+            {selectedChat ? (
+              <ChatDetail chat={selectedChat} onBack={handleBackToList} currentUserId={currentUserId} />
+            ) : (
+              <div className="flex-1 p-6 overflow-y-auto flex items-center justify-center h-full">
+                <div className="text-center max-w-md w-full">
+                  <div className="mx-auto w-24 h-24 bg-green-100 rounded-full flex items-center justify-center mb-6">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="48"
+                      height="48"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      className="text-green-600"
+                    >
+                      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                    </svg>
+                  </div>
 
-            <h1 className="text-2xl font-semibold text-gray-800 dark:text-gray-200 mb-4">
-              Welcome to SoussTalk Chat App
-            </h1>
+                  <h1 className="text-2xl font-semibold text-gray-800 dark:text-gray-200 mb-4">
+                    Welcome to SoussTalk Chat App
+                  </h1>
 
-            <p className="text-gray-600 dark:text-gray-400 mb-8">
-              Select a chat from the sidebar or start a new conversation to begin messaging.
-            </p>
+                  <p className="text-gray-600 dark:text-gray-400 mb-8">
+                    Select a chat from the sidebar or start a new conversation to begin messaging.
+                  </p>
 
-            <button className="bg-green-600 hover:bg-green-700 text-white px-8 py-2 rounded-md transition-all duration-300 hover:shadow-lg transform hover:-translate-y-1">
-              Start New Chat
-            </button>
+                  <button className="bg-green-600 hover:bg-green-700 text-white px-8 py-2 rounded-md transition-all duration-300 hover:shadow-lg transform hover:-translate-y-1">
+                    Start New Chat
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
-        </div>
+        )}
       </div>
     </main>
+  )
+}
+
+// Contact Item Component
+function ContactItem({ contact, isSelected, onClick }) {
+  return (
+    <div
+      className={`flex items-center p-3 cursor-pointer ${
+        isSelected ? "bg-green-50 dark:bg-green-900/20" : "hover:bg-gray-100 dark:hover:bg-gray-700"
+      }`}
+      onClick={onClick}
+    >
+      {/* User avatar */}
+      <div className="relative mr-3">
+        <div
+          className={`h-10 w-10 rounded-full flex items-center justify-center ${
+            contact.name.includes("Miranda Valentine") || contact.name.includes("Dean Vargas")
+              ? "bg-purple-100 text-purple-600"
+              : contact.name.includes("Zimmerman") || contact.name.includes("Badie")
+                ? "bg-gray-100 text-gray-600"
+                : "bg-green-100 text-green-600"
+          }`}
+        >
+          {contact.avatar ? (
+            <img
+              src={contact.avatar || "/placeholder.svg"}
+              alt={contact.name}
+              className="h-full w-full rounded-full object-cover"
+            />
+          ) : (
+            <span className="font-medium">{contact.initials}</span>
+          )}
+        </div>
+        {contact.online && (
+          <span className="absolute bottom-0 right-0 block h-2.5 w-2.5 rounded-full bg-green-500 ring-2 ring-white dark:ring-gray-800" />
+        )}
+      </div>
+
+      {/* Message content */}
+      <div className="flex-1 min-w-0">
+        <div className="flex justify-between items-center mb-1">
+          <p className="text-sm font-medium text-gray-800 dark:text-gray-200 truncate">{contact.name}</p>
+          <span className="text-xs text-gray-500 whitespace-nowrap ml-2">{contact.date}</span>
+        </div>
+        <div className="flex items-center">
+          {contact.isYourMessage && <span className="text-xs font-medium text-gray-500 mr-1">You:</span>}
+          <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{contact.lastMessage}</p>
+
+          {contact.isYourMessage && (
+            <div className="ml-auto pl-2">
+              {contact.status === "read" ? (
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="text-blue-500"
+                >
+                  <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+              ) : (
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="text-gray-400"
+                >
+                  <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
   )
 }
 

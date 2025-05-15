@@ -1,10 +1,14 @@
 # 🗣️ SoussTalk – Smart, Secure & Collaborative Messaging App  
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 **SoussTalk** is a real-time messaging platform with intelligent features like emotion and scam detection. This project is developed by a team of students from **ENSIASD**, with a strong focus on security, collaboration, and user experience.  VS
 =======
 **SoussTalk** is a real-time messaging platform with intelligent features like emotion and scam detection. This project is developed by a team of students from **ENSIASD**, with a strong focus on security, collaboration, and user experience.      SS
 >>>>>>> a834ee9d8273498a8ac421cb166b63ccdbf63308
+=======
+**SoussTalk** is a real-time messaging platform with intelligent features like emotion and scam detection. This project is developed by a team of students from **ENSIASD**, with a strong focus on security, collaboration, and user experience.  
+>>>>>>> 5e520376c557ed43129fb159dedcb24cecef1696
 
 ---  
 

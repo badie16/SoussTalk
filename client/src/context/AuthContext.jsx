@@ -1,6 +1,12 @@
 "use client";
 
-import { createContext, useContext, useState, useEffect } from "react";
+import {
+	createContext,
+	useContext,
+	useState,
+	useEffect,
+	useCallback,
+} from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import {
@@ -29,6 +35,21 @@ export const AuthProvider = ({ children }) => {
 	const [token, setToken] = useState(null);
 	const [loading, setLoading] = useState(true);
 	const navigate = useNavigate();
+
+	// Fonction de déconnexion avec useCallback
+	const handleLogout = useCallback(async () => {
+		setLoading(true);
+		try {
+			await logoutService();
+			setUser(null);
+			setToken(null);
+			navigate("/login");
+		} catch (error) {
+			console.error("Erreur de déconnexion:", error);
+		} finally {
+			setLoading(false);
+		}
+	}, [navigate]);
 
 	// Vérifier l'authentification au chargement
 	useEffect(() => {
@@ -65,7 +86,7 @@ export const AuthProvider = ({ children }) => {
 		};
 
 		checkAuth();
-	}, []);
+	}, [handleLogout]);
 
 	// Fonction de connexion
 	const handleLogin = async (credentials) => {
@@ -87,21 +108,6 @@ export const AuthProvider = ({ children }) => {
 				message:
 					error.message || "Une erreur est survenue lors de la connexion",
 			};
-		} finally {
-			setLoading(false);
-		}
-	};
-
-	// Fonction de déconnexion
-	const handleLogout = async () => {
-		setLoading(true);
-		try {
-			await logoutService();
-			setUser(null);
-			setToken(null);
-			navigate("/login");
-		} catch (error) {
-			console.error("Erreur de déconnexion:", error);
 		} finally {
 			setLoading(false);
 		}
