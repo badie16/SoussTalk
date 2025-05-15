@@ -22,7 +22,10 @@ export const isLoggedIn = () => {
 };
 
 //  Obtenir les infos utilisateur
-
+export const getCurrentUser = () => {
+	const user = localStorage.getItem("user");
+	return user ? JSON.parse(user) : null;
+};
 
 //  Connexion
 export const login = async (formData) => {
@@ -75,10 +78,6 @@ export const logout = async () => {
 		localStorage.removeItem("user");
 	}
 };
-export const getCurrentUser = () => {
-	const user = localStorage.getItem("user");
-	return user ? JSON.parse(user) : null;
-};
 
 //  Inscription
 export const signup = async (userData) => {
@@ -127,4 +126,3 @@ export const setupOnlineStatusListener = () => {
 	// Initialiser au chargement
 	updateOnlineStatus(navigator.onLine);
 };
-
