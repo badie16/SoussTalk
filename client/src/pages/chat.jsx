@@ -10,7 +10,7 @@ const Chat = () => {
 
   // Check if user is logged in
   useEffect(() => {
-    const userData = localStorage.getItem("userData")
+    const userData = localStorage.getItem("user")
     if (!userData) {
       navigate("/login")
       return

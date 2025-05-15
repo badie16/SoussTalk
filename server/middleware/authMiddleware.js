@@ -17,12 +17,21 @@ exports.protect = async (req, res, next) => {
 		if (!token) {
 			return res.status(401).json({ message: "Non autorisé, aucun token" });
 		}
+
 		// Vérifier le token avec Supabase Auth
+		// Correction: getSession() ne prend pas de token en paramètre
 		const { data: sessionData, error: sessionError } =
-			await supabase.auth.getSession(token);
+			await supabase.auth.getSession();
+
 		if (sessionError || !sessionData.session) {
 			return res.status(401).json({ message: "Non autorisé, token invalide" });
 		}
+
+		// Vérifier que le token correspond à la session
+		if (token !== sessionData.session.access_token) {
+			return res.status(401).json({ message: "Non autorisé, token invalide" });
+		}
+
 		const userId = sessionData.session.user.id;
 		// Récupérer l'utilisateur à partir de notre table personnalisée
 		const user = await getUserById(userId);

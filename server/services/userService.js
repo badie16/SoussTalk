@@ -46,7 +46,7 @@ const getUserProfile = async (req, res) => {
 	const { id } = req.params;
 
 	try {
-		const user = await db.getUserById(id);
+		const user = await getUserById(id);
 		if (!user) {
 			return res.status(404).json({ message: "Utilisateur non trouvé" });
 		}
