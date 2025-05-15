@@ -11,14 +11,30 @@ import {
 	Lock,
 	Eye,
 	EyeOff,
+	Bell,
+	Moon,
+	Sun,
+	Shield,
+	Download,
+	Trash2,
+	LogOut,
+	User,
+	Settings,
 } from "lucide-react";
 import {
 	getUserProfile,
 	updateUserProfile,
 	updateUserAvatar,
 	changePassword,
+	deleteAccount,
+	exportUserData,
+	updateUserPreferences,
 } from "../services/userService";
-import { logout } from "../services/authService";
+import { logout, verifyToken } from "../services/authService";
+import Skeleton, {
+	ProfileCardSkeleton,
+	SettingsSectionSkeleton,
+} from "../components/Skeleton";
 import "../index.css";
 
 const Profile = () => {
@@ -52,13 +68,46 @@ const Profile = () => {
 	const [showCurrentPassword, setShowCurrentPassword] = useState(false);
 	const [showNewPassword, setShowNewPassword] = useState(false);
 
+	// États pour les préférences utilisateur
+	const [preferences, setPreferences] = useState({
+		theme: "light",
+		notifications: true,
+		privacy: "public",
+		language: "fr",
+	});
+	const [isEditingPreferences, setIsEditingPreferences] = useState(false);
+	const [editedPreferences, setEditedPreferences] = useState({
+		theme: "light",
+		notifications: true,
+		privacy: "public",
+		language: "fr",
+	});
+
+	// États pour la suppression de compte
+	const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
+	const [deleteConfirmation, setDeleteConfirmation] = useState("");
+
 	// États pour le chargement et les erreurs
-	const [isLoading, setIsLoading] = useState(false);
+	const [isLoading, setIsLoading] = useState(true);
 	const [error, setError] = useState("");
 	const [successMessage, setSuccessMessage] = useState("");
 
 	// État pour suivre l'utilisateur actuel
 	const [currentUser, setCurrentUser] = useState(null);
+
+	// État pour l'onglet actif
+	const [activeTab, setActiveTab] = useState("profile");
+
+	// Vérifier l'authentification
+	useEffect(() => {
+		const checkAuth = async () => {
+			const result = await verifyToken();
+			if (!result.valid) {
+				navigate("/login");
+			}
+		};
+		checkAuth();
+	}, [navigate]);
 
 	// Charger les données du profil
 	const loadUserData = useCallback(async () => {
@@ -74,8 +123,8 @@ const Profile = () => {
 				return;
 			}
 
-			// Afficher l'ID utilisateur pour le débogage
-			console.log("Chargement du profil pour l'utilisateur ID:", user.id);
+			// Simuler un délai de chargement pour montrer le skeleton (à supprimer en production)
+			// await new Promise(resolve => setTimeout(resolve, 1500));
 
 			const response = await getUserProfile(user.id);
 
@@ -86,7 +135,6 @@ const Profile = () => {
 			}
 
 			const profileData = response.data || {};
-			console.log("Données du profil reçues:", profileData);
 
 			// Formater les données du profil
 			setProfile({
@@ -108,6 +156,21 @@ const Profile = () => {
 				phone: profileData.phone_number || "",
 				bio: profileData.bio || "",
 			});
+
+			// Charger les préférences utilisateur
+			if (profileData.preferences) {
+				try {
+					const userPrefs =
+						typeof profileData.preferences === "string"
+							? JSON.parse(profileData.preferences)
+							: profileData.preferences;
+
+					setPreferences(userPrefs);
+					setEditedPreferences(userPrefs);
+				} catch (e) {
+					console.error("Erreur lors du parsing des préférences:", e);
+				}
+			}
 		} catch (error) {
 			console.error("Error loading profile data:", error);
 			setError("Failed to load profile. Please try again.");
@@ -136,12 +199,31 @@ const Profile = () => {
 		setIsEditing(!isEditing);
 	};
 
+	// Gérer le basculement de l'édition des préférences
+	const handlePreferencesEditToggle = () => {
+		if (isEditingPreferences) {
+			// Annuler l'édition
+			setEditedPreferences({ ...preferences });
+			setError("");
+		}
+		setIsEditingPreferences(!isEditingPreferences);
+	};
+
 	// Gérer les changements dans les champs d'édition
 	const handleInputChange = (e) => {
 		const { name, value } = e.target;
 		setEditedData((prev) => ({
 			...prev,
 			[name]: value,
+		}));
+	};
+
+	// Gérer les changements dans les préférences
+	const handlePreferenceChange = (e) => {
+		const { name, value, type, checked } = e.target;
+		setEditedPreferences((prev) => ({
+			...prev,
+			[name]: type === "checkbox" ? checked : value,
 		}));
 	};
 
@@ -186,7 +268,7 @@ const Profile = () => {
 					...prev,
 					profileImage: result.data.avatar_url,
 				}));
-				setSuccessMessage("Profile picture updated successfully!");
+				setSuccessMessage("Photo de profil mise à jour avec succès!");
 
 				// Effacer le message de succès après 3 secondes
 				setTimeout(() => setSuccessMessage(""), 3000);
@@ -256,7 +338,7 @@ const Profile = () => {
 				});
 
 				setIsEditing(false);
-				setSuccessMessage("Profile updated successfully!");
+				setSuccessMessage("Profil mis à jour avec succès!");
 
 				// Effacer le message de succès après 3 secondes
 				setTimeout(() => setSuccessMessage(""), 3000);
@@ -266,6 +348,47 @@ const Profile = () => {
 		} catch (error) {
 			console.error("Error saving profile changes:", error);
 			setError("Failed to save changes. Please try again.");
+		} finally {
+			setIsLoading(false);
+		}
+	};
+
+	// Sauvegarder les préférences utilisateur
+	const handleSavePreferences = async () => {
+		setIsLoading(true);
+		setError("");
+
+		try {
+			if (!currentUser?.id) {
+				navigate("/login");
+				return;
+			}
+
+			const result = await updateUserPreferences(
+				currentUser.id,
+				editedPreferences
+			);
+
+			if (result.success) {
+				setPreferences({ ...editedPreferences });
+				setIsEditingPreferences(false);
+				setSuccessMessage("Préférences mises à jour avec succès!");
+
+				// Appliquer le thème si nécessaire
+				if (editedPreferences.theme === "dark") {
+					document.documentElement.classList.add("dark");
+				} else {
+					document.documentElement.classList.remove("dark");
+				}
+
+				// Effacer le message de succès après 3 secondes
+				setTimeout(() => setSuccessMessage(""), 3000);
+			} else {
+				setError(result.message);
+			}
+		} catch (error) {
+			console.error("Error saving preferences:", error);
+			setError("Failed to save preferences. Please try again.");
 		} finally {
 			setIsLoading(false);
 		}
@@ -316,7 +439,7 @@ const Profile = () => {
 					newPassword: "",
 					confirmPassword: "",
 				});
-				setSuccessMessage("Password changed successfully!");
+				setSuccessMessage("Mot de passe changé avec succès!");
 
 				// Effacer le message de succès après 3 secondes
 				setTimeout(() => setSuccessMessage(""), 3000);
@@ -326,6 +449,81 @@ const Profile = () => {
 		} catch (error) {
 			console.error("Error changing password:", error);
 			setError("Failed to change password. Please try again.");
+		} finally {
+			setIsLoading(false);
+		}
+	};
+
+	// Exporter les données utilisateur
+	const handleExportData = async () => {
+		setIsLoading(true);
+		setError("");
+
+		try {
+			if (!currentUser?.id) {
+				navigate("/login");
+				return;
+			}
+
+			const result = await exportUserData(currentUser.id);
+
+			if (result.success) {
+				// Créer un fichier à télécharger
+				const dataStr = JSON.stringify(result.data, null, 2);
+				const dataBlob = new Blob([dataStr], { type: "application/json" });
+				const url = URL.createObjectURL(dataBlob);
+
+				// Créer un lien et déclencher le téléchargement
+				const a = document.createElement("a");
+				a.href = url;
+				a.download = `user_data_${currentUser.id}.json`;
+				document.body.appendChild(a);
+				a.click();
+
+				// Nettoyer
+				URL.revokeObjectURL(url);
+				document.body.removeChild(a);
+
+				setSuccessMessage("Données exportées avec succès!");
+				setTimeout(() => setSuccessMessage(""), 3000);
+			} else {
+				setError(result.message);
+			}
+		} catch (error) {
+			console.error("Error exporting data:", error);
+			setError("Failed to export data. Please try again.");
+		} finally {
+			setIsLoading(false);
+		}
+	};
+
+	// Supprimer le compte
+	const handleDeleteAccount = async () => {
+		if (deleteConfirmation !== "SUPPRIMER") {
+			setError("Veuillez saisir SUPPRIMER pour confirmer");
+			return;
+		}
+
+		setIsLoading(true);
+		setError("");
+
+		try {
+			if (!currentUser?.id) {
+				navigate("/login");
+				return;
+			}
+
+			const result = await deleteAccount(currentUser.id);
+
+			if (result.success) {
+				await logout();
+				navigate("/login");
+			} else {
+				setError(result.message);
+			}
+		} catch (error) {
+			console.error("Error deleting account:", error);
+			setError("Failed to delete account. Please try again.");
 		} finally {
 			setIsLoading(false);
 		}
@@ -349,85 +547,30 @@ const Profile = () => {
 		navigate("/chat");
 	};
 
-	return (
-		<div className="min-h-screen bg-gray-100 dark:bg-gray-900">
-			{/* Top Navigation */}
-			<div className="bg-white dark:bg-gray-800 shadow-sm">
-				<div className="max-w-3xl mx-auto px-4 py-3 flex items-center">
-					<button
-						onClick={handleBackToChat}
-						className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-					>
-						<ArrowLeft size={20} className="text-gray-700 dark:text-gray-300" />
-					</button>
-					<h1 className="ml-4 text-xl font-semibold text-gray-800 dark:text-gray-200">
-						Profile
-					</h1>
-					<div className="ml-auto">
-						{isEditing ? (
-							<div className="flex space-x-2">
-								<button
-									onClick={handleEditToggle}
-									className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-									disabled={isLoading}
-								>
-									<X size={20} className="text-red-500" />
-								</button>
-								<button
-									onClick={handleSaveChanges}
-									className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-									disabled={isLoading}
-								>
-									{isLoading ? (
-										<div className="w-5 h-5 border-2 border-green-500 border-t-transparent rounded-full animate-spin"></div>
-									) : (
-										<Check size={20} className="text-green-500" />
-									)}
-								</button>
-							</div>
-						) : (
-							<button
-								onClick={handleEditToggle}
-								className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-							>
-								<Edit2 size={20} className="text-gray-700 dark:text-gray-300" />
-							</button>
-						)}
-					</div>
-				</div>
-			</div>
+	// Rendu des onglets
+	const renderTabContent = () => {
+		switch (activeTab) {
+			case "profile":
+				return renderProfileTab();
+			case "security":
+				return renderSecurityTab();
+			case "preferences":
+				return renderPreferencesTab();
+			case "privacy":
+				return renderPrivacyTab();
+			default:
+				return renderProfileTab();
+		}
+	};
 
-			{/* Messages de succès et d'erreur */}
-			{successMessage && (
-				<div className="max-w-3xl mx-auto mt-4 px-4">
-					<div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded-lg flex items-start">
-						<Check size={20} className="mr-2 flex-shrink-0 mt-0.5" />
-						<span>{successMessage}</span>
-					</div>
-				</div>
-			)}
+	// Onglet Profil
+	const renderProfileTab = () => {
+		if (isLoading) {
+			return <ProfileCardSkeleton />;
+		}
 
-			{error && (
-				<div className="max-w-3xl mx-auto mt-4 px-4">
-					<div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg flex items-start">
-						<AlertCircle size={20} className="mr-2 flex-shrink-0 mt-0.5" />
-						<span>{error}</span>
-					</div>
-				</div>
-			)}
-
-			{/* Indicateur de chargement global */}
-			{isLoading && !isEditing && (
-				<div className="max-w-3xl mx-auto mt-4 px-4">
-					<div className="bg-blue-50 text-blue-700 px-4 py-3 rounded-lg flex items-center justify-center">
-						<div className="w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mr-2"></div>
-						<span>Loading...</span>
-					</div>
-				</div>
-			)}
-
-			{/* Profile Content */}
-			<div className="max-w-3xl mx-auto px-4 py-6">
+		return (
+			<>
 				{/* Profile Header */}
 				<div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm overflow-hidden">
 					{/* Cover Photo */}
@@ -468,7 +611,7 @@ const Profile = () => {
 							{/* Name */}
 							<div>
 								<label className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">
-									Full Name
+									Nom complet
 								</label>
 								{isEditing ? (
 									<input
@@ -477,11 +620,11 @@ const Profile = () => {
 										value={editedData.name}
 										onChange={handleInputChange}
 										className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-green-500 focus:border-green-500 dark:bg-gray-700 dark:text-white"
-										placeholder="Your full name"
+										placeholder="Votre nom complet"
 									/>
 								) : (
 									<p className="text-lg font-semibold text-gray-800 dark:text-gray-200">
-										{profile.name || "Not set"}
+										{profile.name || "Non défini"}
 									</p>
 								)}
 							</div>
@@ -498,7 +641,7 @@ const Profile = () => {
 										value={editedData.email}
 										onChange={handleInputChange}
 										className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-green-500 focus:border-green-500 dark:bg-gray-700 dark:text-white"
-										placeholder="your@email.com"
+										placeholder="votre@email.com"
 									/>
 								) : (
 									<div className="flex items-center">
@@ -518,7 +661,7 @@ const Profile = () => {
 											<polyline points="22,6 12,13 2,6"></polyline>
 										</svg>
 										<p className="text-gray-800 dark:text-gray-200">
-											{profile.email || "Not set"}
+											{profile.email || "Non défini"}
 										</p>
 									</div>
 								)}
@@ -527,7 +670,7 @@ const Profile = () => {
 							{/* Phone */}
 							<div>
 								<label className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">
-									Phone Number
+									Numéro de téléphone
 								</label>
 								{isEditing ? (
 									<input
@@ -555,7 +698,7 @@ const Profile = () => {
 											<path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
 										</svg>
 										<p className="text-gray-800 dark:text-gray-200">
-											{profile.phone || "Not set"}
+											{profile.phone || "Non défini"}
 										</p>
 									</div>
 								)}
@@ -573,29 +716,47 @@ const Profile = () => {
 										onChange={handleInputChange}
 										rows={4}
 										className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-green-500 focus:border-green-500 dark:bg-gray-700 dark:text-white"
-										placeholder="Tell us about yourself..."
+										placeholder="Parlez-nous de vous..."
 									></textarea>
 								) : (
 									<p className="text-gray-800 dark:text-gray-200 whitespace-pre-line">
-										{profile.bio || "No bio available"}
+										{profile.bio || "Aucune bio disponible"}
 									</p>
 								)}
 							</div>
 						</div>
 					</div>
 				</div>
+			</>
+		);
+	};
 
+	// Onglet Sécurité
+	const renderSecurityTab = () => {
+		if (isLoading) {
+			return (
+				<>
+					<SettingsSectionSkeleton />
+					<div className="mt-6">
+						<SettingsSectionSkeleton />
+					</div>
+				</>
+			);
+		}
+
+		return (
+			<>
 				{/* Password Change Section */}
-				<div className="mt-6 bg-white dark:bg-gray-800 rounded-lg shadow-sm overflow-hidden">
+				<div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm overflow-hidden">
 					<div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
 						<h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200">
-							Change Password
+							Changer le mot de passe
 						</h2>
 						<button
 							onClick={() => setIsChangingPassword(!isChangingPassword)}
 							className="text-green-600 hover:text-green-700 text-sm font-medium"
 						>
-							{isChangingPassword ? "Cancel" : "Change"}
+							{isChangingPassword ? "Annuler" : "Changer"}
 						</button>
 					</div>
 
@@ -607,7 +768,7 @@ const Profile = () => {
 									htmlFor="currentPassword"
 									className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
 								>
-									Current Password
+									Mot de passe actuel
 								</label>
 								<div className="relative">
 									<input
@@ -617,7 +778,7 @@ const Profile = () => {
 										value={passwordData.currentPassword}
 										onChange={handlePasswordChange}
 										className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-green-500 focus:border-green-500 dark:bg-gray-700 dark:text-white"
-										placeholder="Enter your current password"
+										placeholder="Entrez votre mot de passe actuel"
 									/>
 									<button
 										type="button"
@@ -639,7 +800,7 @@ const Profile = () => {
 									htmlFor="newPassword"
 									className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
 								>
-									New Password
+									Nouveau mot de passe
 								</label>
 								<div className="relative">
 									<input
@@ -649,7 +810,7 @@ const Profile = () => {
 										value={passwordData.newPassword}
 										onChange={handlePasswordChange}
 										className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-green-500 focus:border-green-500 dark:bg-gray-700 dark:text-white"
-										placeholder="Enter new password"
+										placeholder="Entrez le nouveau mot de passe"
 									/>
 									<button
 										type="button"
@@ -664,7 +825,7 @@ const Profile = () => {
 									</button>
 								</div>
 								<p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-									Password must be at least 8 characters long
+									Le mot de passe doit contenir au moins 8 caractères
 								</p>
 							</div>
 
@@ -674,7 +835,7 @@ const Profile = () => {
 									htmlFor="confirmPassword"
 									className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
 								>
-									Confirm New Password
+									Confirmer le nouveau mot de passe
 								</label>
 								<input
 									id="confirmPassword"
@@ -683,7 +844,7 @@ const Profile = () => {
 									value={passwordData.confirmPassword}
 									onChange={handlePasswordChange}
 									className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-green-500 focus:border-green-500 dark:bg-gray-700 dark:text-white"
-									placeholder="Confirm new password"
+									placeholder="Confirmez le nouveau mot de passe"
 								/>
 							</div>
 
@@ -696,12 +857,12 @@ const Profile = () => {
 									{isLoading ? (
 										<>
 											<div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
-											Updating...
+											Mise à jour...
 										</>
 									) : (
 										<>
 											<Lock size={16} className="mr-2" />
-											Update Password
+											Mettre à jour le mot de passe
 										</>
 									)}
 								</button>
@@ -710,124 +871,568 @@ const Profile = () => {
 					) : (
 						<div className="px-6 py-4">
 							<p className="text-gray-600 dark:text-gray-400 text-sm">
-								For security reasons, we recommend changing your password
-								regularly.
+								Pour des raisons de sécurité, nous vous recommandons de changer
+								régulièrement votre mot de passe.
 							</p>
 						</div>
 					)}
 				</div>
 
-				{/* Account Settings Section */}
+				{/* Sessions Section */}
 				<div className="mt-6 bg-white dark:bg-gray-800 rounded-lg shadow-sm overflow-hidden">
 					<div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
 						<h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200">
-							Account Settings
+							Sessions actives
 						</h2>
 					</div>
 					<div className="px-6 py-4">
-						<ul className="divide-y divide-gray-200 dark:divide-gray-700">
-							<SettingsItem icon="lock" title="Privacy and Security" />
-							<SettingsItem icon="bell" title="Notifications" />
-							<SettingsItem icon="moon" title="Appearance" />
-							<SettingsItem icon="help-circle" title="Help and Support" />
-							<SettingsItem
-								icon="log-out"
-								title="Logout"
-								danger
+						<div className="space-y-4">
+							<div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+								<div className="flex items-center">
+									<div className="w-10 h-10 rounded-full bg-green-100 dark:bg-green-800 flex items-center justify-center mr-3">
+										<svg
+											xmlns="http://www.w3.org/2000/svg"
+											width="18"
+											height="18"
+											viewBox="0 0 24 24"
+											fill="none"
+											stroke="currentColor"
+											strokeWidth="2"
+											strokeLinecap="round"
+											strokeLinejoin="round"
+											className="text-green-600 dark:text-green-300"
+										>
+											<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+											<circle cx="12" cy="7" r="4"></circle>
+										</svg>
+									</div>
+									<div>
+										<p className="font-medium text-gray-800 dark:text-gray-200">
+											Session actuelle
+										</p>
+										<p className="text-sm text-gray-500 dark:text-gray-400">
+											{new Date().toLocaleDateString()} - {navigator.platform}
+										</p>
+									</div>
+								</div>
+								<span className="px-2 py-1 bg-green-100 text-green-800 text-xs font-medium rounded-full dark:bg-green-800 dark:text-green-100">
+									Actif
+								</span>
+							</div>
+						</div>
+						<div className="mt-4">
+							<button
 								onClick={handleLogout}
-							/>
-						</ul>
+								className="w-full flex justify-center items-center py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600 dark:hover:bg-gray-600"
+							>
+								<LogOut size={16} className="mr-2" />
+								Se déconnecter de toutes les sessions
+							</button>
+						</div>
 					</div>
 				</div>
+			</>
+		);
+	};
+
+	// Onglet Préférences
+	const renderPreferencesTab = () => {
+		if (isLoading) {
+			return <SettingsSectionSkeleton />;
+		}
+
+		return (
+			<div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm overflow-hidden">
+				<div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
+					<h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200">
+						Préférences utilisateur
+					</h2>
+					<button
+						onClick={handlePreferencesEditToggle}
+						className="text-green-600 hover:text-green-700 text-sm font-medium"
+					>
+						{isEditingPreferences ? "Annuler" : "Modifier"}
+					</button>
+				</div>
+				<div className="px-6 py-4 space-y-6">
+					{/* Theme */}
+					<div>
+						<label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+							Thème
+						</label>
+						{isEditingPreferences ? (
+							<div className="flex space-x-4">
+								<label className="flex items-center">
+									<input
+										type="radio"
+										name="theme"
+										value="light"
+										checked={editedPreferences.theme === "light"}
+										onChange={handlePreferenceChange}
+										className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300"
+									/>
+									<span className="ml-2 flex items-center">
+										<Sun size={16} className="mr-1 text-yellow-500" />
+										Clair
+									</span>
+								</label>
+								<label className="flex items-center">
+									<input
+										type="radio"
+										name="theme"
+										value="dark"
+										checked={editedPreferences.theme === "dark"}
+										onChange={handlePreferenceChange}
+										className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300"
+									/>
+									<span className="ml-2 flex items-center">
+										<Moon size={16} className="mr-1 text-blue-500" />
+										Sombre
+									</span>
+								</label>
+								<label className="flex items-center">
+									<input
+										type="radio"
+										name="theme"
+										value="system"
+										checked={editedPreferences.theme === "system"}
+										onChange={handlePreferenceChange}
+										className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300"
+									/>
+									<span className="ml-2 flex items-center">
+										<Settings size={16} className="mr-1 text-gray-500" />
+										Système
+									</span>
+								</label>
+							</div>
+						) : (
+							<div className="flex items-center text-gray-800 dark:text-gray-200">
+								{preferences.theme === "light" && (
+									<Sun size={18} className="mr-2 text-yellow-500" />
+								)}
+								{preferences.theme === "dark" && (
+									<Moon size={18} className="mr-2 text-blue-500" />
+								)}
+								{preferences.theme === "system" && (
+									<Settings size={18} className="mr-2 text-gray-500" />
+								)}
+								{preferences.theme === "light" && "Thème clair"}
+								{preferences.theme === "dark" && "Thème sombre"}
+								{preferences.theme === "system" && "Thème système"}
+							</div>
+						)}
+					</div>
+
+					{/* Notifications */}
+					<div>
+						<label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+							Notifications
+						</label>
+						{isEditingPreferences ? (
+							<div className="space-y-2">
+								<label className="flex items-center">
+									<input
+										type="checkbox"
+										name="notifications"
+										checked={editedPreferences.notifications}
+										onChange={handlePreferenceChange}
+										className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded"
+									/>
+									<span className="ml-2">Activer les notifications</span>
+								</label>
+							</div>
+						) : (
+							<div className="flex items-center text-gray-800 dark:text-gray-200">
+								<Bell size={18} className="mr-2 text-green-500" />
+								{preferences.notifications
+									? "Notifications activées"
+									: "Notifications désactivées"}
+							</div>
+						)}
+					</div>
+
+					{/* Language */}
+					<div>
+						<label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+							Langue
+						</label>
+						{isEditingPreferences ? (
+							<select
+								name="language"
+								value={editedPreferences.language}
+								onChange={handlePreferenceChange}
+								className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500 dark:bg-gray-700 dark:text-white"
+							>
+								<option value="fr">Français</option>
+								<option value="en">English</option>
+								<option value="ar">العربية</option>
+							</select>
+						) : (
+							<div className="flex items-center text-gray-800 dark:text-gray-200">
+								<Globe size={18} className="mr-2 text-blue-500" />
+								{preferences.language === "fr" && "Français"}
+								{preferences.language === "en" && "English"}
+								{preferences.language === "ar" && "العربية"}
+							</div>
+						)}
+					</div>
+
+					{/* Privacy */}
+					<div>
+						<label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+							Confidentialité
+						</label>
+						{isEditingPreferences ? (
+							<select
+								name="privacy"
+								value={editedPreferences.privacy}
+								onChange={handlePreferenceChange}
+								className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500 dark:bg-gray-700 dark:text-white"
+							>
+								<option value="public">
+									Public - Tout le monde peut voir mon profil
+								</option>
+								<option value="contacts">
+									Contacts - Seulement mes contacts peuvent voir mon profil
+								</option>
+								<option value="private">
+									Privé - Personne ne peut voir mon profil
+								</option>
+							</select>
+						) : (
+							<div className="flex items-center text-gray-800 dark:text-gray-200">
+								<Shield size={18} className="mr-2 text-red-500" />
+								{preferences.privacy === "public" &&
+									"Public - Tout le monde peut voir votre profil"}
+								{preferences.privacy === "contacts" &&
+									"Contacts - Seulement vos contacts peuvent voir votre profil"}
+								{preferences.privacy === "private" &&
+									"Privé - Personne ne peut voir votre profil"}
+							</div>
+						)}
+					</div>
+
+					{isEditingPreferences && (
+						<div className="pt-2">
+							<button
+								onClick={handleSavePreferences}
+								disabled={isLoading}
+								className="w-full flex justify-center items-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50"
+							>
+								{isLoading ? (
+									<>
+										<div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+										Enregistrement...
+									</>
+								) : (
+									<>
+										<Check size={16} className="mr-2" />
+										Enregistrer les préférences
+									</>
+								)}
+							</button>
+						</div>
+					)}
+				</div>
+			</div>
+		);
+	};
+
+	// Onglet Confidentialité
+	const renderPrivacyTab = () => {
+		if (isLoading) {
+			return (
+				<>
+					<SettingsSectionSkeleton />
+					<div className="mt-6">
+						<SettingsSectionSkeleton />
+					</div>
+				</>
+			);
+		}
+
+		return (
+			<>
+				{/* Data Export Section */}
+				<div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm overflow-hidden">
+					<div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+						<h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200">
+							Exportation des données
+						</h2>
+					</div>
+					<div className="px-6 py-4">
+						<p className="text-gray-600 dark:text-gray-400 text-sm mb-4">
+							Vous pouvez exporter toutes vos données personnelles dans un
+							format JSON. Cela inclut votre profil, vos préférences et votre
+							historique de messages.
+						</p>
+						<button
+							onClick={handleExportData}
+							disabled={isLoading}
+							className="w-full flex justify-center items-center py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600 dark:hover:bg-gray-600"
+						>
+							{isLoading ? (
+								<>
+									<div className="w-4 h-4 border-2 border-gray-500 border-t-transparent rounded-full animate-spin mr-2"></div>
+									Exportation...
+								</>
+							) : (
+								<>
+									<Download size={16} className="mr-2" />
+									Exporter mes données
+								</>
+							)}
+						</button>
+					</div>
+				</div>
+
+				{/* Account Deletion Section */}
+				<div className="mt-6 bg-white dark:bg-gray-800 rounded-lg shadow-sm overflow-hidden">
+					<div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+						<h2 className="text-lg font-semibold text-red-600 dark:text-red-400">
+							Suppression du compte
+						</h2>
+					</div>
+					<div className="px-6 py-4">
+						<div className="bg-red-50 dark:bg-red-900/20 p-4 rounded-lg mb-4">
+							<div className="flex">
+								<div className="flex-shrink-0">
+									<AlertCircle
+										className="h-5 w-5 text-red-400"
+										aria-hidden="true"
+									/>
+								</div>
+								<div className="ml-3">
+									<h3 className="text-sm font-medium text-red-800 dark:text-red-300">
+										Attention
+									</h3>
+									<div className="mt-2 text-sm text-red-700 dark:text-red-400">
+										<p>
+											La suppression de votre compte est irréversible. Toutes
+											vos données personnelles, messages et fichiers seront
+											définitivement supprimés.
+										</p>
+									</div>
+								</div>
+							</div>
+						</div>
+
+						{isConfirmingDelete ? (
+							<div className="space-y-4">
+								<p className="text-gray-600 dark:text-gray-400 text-sm">
+									Pour confirmer la suppression, veuillez saisir{" "}
+									<span className="font-bold">SUPPRIMER</span> ci-dessous:
+								</p>
+								<input
+									type="text"
+									value={deleteConfirmation}
+									onChange={(e) => setDeleteConfirmation(e.target.value)}
+									className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-red-500 focus:border-red-500 dark:bg-gray-700 dark:text-white"
+									placeholder="SUPPRIMER"
+								/>
+								<div className="flex space-x-3">
+									<button
+										onClick={() => setIsConfirmingDelete(false)}
+										className="flex-1 py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600 dark:hover:bg-gray-600"
+									>
+										Annuler
+									</button>
+									<button
+										onClick={handleDeleteAccount}
+										disabled={isLoading || deleteConfirmation !== "SUPPRIMER"}
+										className="flex-1 flex justify-center items-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50"
+									>
+										{isLoading ? (
+											<>
+												<div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+												Suppression...
+											</>
+										) : (
+											<>
+												<Trash2 size={16} className="mr-2" />
+												Supprimer définitivement
+											</>
+										)}
+									</button>
+								</div>
+							</div>
+						) : (
+							<button
+								onClick={() => setIsConfirmingDelete(true)}
+								className="w-full flex justify-center items-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+							>
+								<Trash2 size={16} className="mr-2" />
+								Supprimer mon compte
+							</button>
+						)}
+					</div>
+				</div>
+			</>
+		);
+	};
+
+	return (
+		<div className="min-h-screen bg-gray-100 dark:bg-gray-900">
+			{/* Top Navigation */}
+			<div className="bg-white dark:bg-gray-800 shadow-sm">
+				<div className="max-w-3xl mx-auto px-4 py-3 flex items-center">
+					<button
+						onClick={handleBackToChat}
+						className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+					>
+						<ArrowLeft size={20} className="text-gray-700 dark:text-gray-300" />
+					</button>
+					<h1 className="ml-4 text-xl font-semibold text-gray-800 dark:text-gray-200">
+						Profil
+					</h1>
+					<div className="ml-auto">
+						{isEditing ? (
+							<div className="flex space-x-2">
+								<button
+									onClick={handleEditToggle}
+									className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+									disabled={isLoading}
+								>
+									<X size={20} className="text-red-500" />
+								</button>
+								<button
+									onClick={handleSaveChanges}
+									className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+									disabled={isLoading}
+								>
+									{isLoading ? (
+										<div className="w-5 h-5 border-2 border-green-500 border-t-transparent rounded-full animate-spin"></div>
+									) : (
+										<Check size={20} className="text-green-500" />
+									)}
+								</button>
+							</div>
+						) : activeTab === "profile" && !isLoading ? (
+							<button
+								onClick={handleEditToggle}
+								className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+							>
+								<Edit2 size={20} className="text-gray-700 dark:text-gray-300" />
+							</button>
+						) : null}
+					</div>
+				</div>
+			</div>
+
+			{/* Messages de succès et d'erreur */}
+			{successMessage && (
+				<div className="max-w-3xl mx-auto mt-4 px-4">
+					<div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded-lg flex items-start">
+						<Check size={20} className="mr-2 flex-shrink-0 mt-0.5" />
+						<span>{successMessage}</span>
+					</div>
+				</div>
+			)}
+
+			{error && (
+				<div className="max-w-3xl mx-auto mt-4 px-4">
+					<div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg flex items-start">
+						<AlertCircle size={20} className="mr-2 flex-shrink-0 mt-0.5" />
+						<span>{error}</span>
+					</div>
+				</div>
+			)}
+
+			{/* Tabs Navigation */}
+			<div className="max-w-3xl mx-auto px-4 pt-6 pb-2">
+				{isLoading ? (
+					<div className="flex space-x-1 border-b border-gray-200 dark:border-gray-700">
+						{[1, 2, 3, 4].map((i) => (
+							<div key={i} className="px-4 py-2">
+								<Skeleton width="80px" height="24px" rounded />
+							</div>
+						))}
+					</div>
+				) : (
+					<div className="flex space-x-1 border-b border-gray-200 dark:border-gray-700">
+						<button
+							onClick={() => setActiveTab("profile")}
+							className={`px-4 py-2 text-sm font-medium rounded-t-lg ${
+								activeTab === "profile"
+									? "text-green-600 border-b-2 border-green-500 dark:text-green-400 dark:border-green-400"
+									: "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
+							}`}
+						>
+							<div className="flex items-center">
+								<User size={16} className="mr-1" />
+								Profil
+							</div>
+						</button>
+						<button
+							onClick={() => setActiveTab("security")}
+							className={`px-4 py-2 text-sm font-medium rounded-t-lg ${
+								activeTab === "security"
+									? "text-green-600 border-b-2 border-green-500 dark:text-green-400 dark:border-green-400"
+									: "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
+							}`}
+						>
+							<div className="flex items-center">
+								<Lock size={16} className="mr-1" />
+								Sécurité
+							</div>
+						</button>
+						<button
+							onClick={() => setActiveTab("preferences")}
+							className={`px-4 py-2 text-sm font-medium rounded-t-lg ${
+								activeTab === "preferences"
+									? "text-green-600 border-b-2 border-green-500 dark:text-green-400 dark:border-green-400"
+									: "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
+							}`}
+						>
+							<div className="flex items-center">
+								<Settings size={16} className="mr-1" />
+								Préférences
+							</div>
+						</button>
+						<button
+							onClick={() => setActiveTab("privacy")}
+							className={`px-4 py-2 text-sm font-medium rounded-t-lg ${
+								activeTab === "privacy"
+									? "text-green-600 border-b-2 border-green-500 dark:text-green-400 dark:border-green-400"
+									: "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
+							}`}
+						>
+							<div className="flex items-center">
+								<Shield size={16} className="mr-1" />
+								Confidentialité
+							</div>
+						</button>
+					</div>
+				)}
+			</div>
+
+			{/* Profile Content */}
+			<div className="max-w-3xl mx-auto px-4 py-4 space-y-6">
+				{renderTabContent()}
 			</div>
 		</div>
 	);
 };
 
-// Settings Item Component
-const SettingsItem = ({ icon, title, danger = false, onClick }) => {
-	const getIcon = () => {
-		switch (icon) {
-			case "lock":
-				return (
-					<path d="M19 11H5a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7a2 2 0 0 0-2-2z"></path>
-				);
-			case "bell":
-				return (
-					<>
-						<path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
-						<path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
-					</>
-				);
-			case "moon":
-				return (
-					<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
-				);
-			case "help-circle":
-				return (
-					<>
-						<circle cx="12" cy="12" r="10"></circle>
-						<path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
-						<line x1="12" y1="17" x2="12.01" y2="17"></line>
-					</>
-				);
-			case "log-out":
-				return (
-					<>
-						<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
-						<polyline points="16 17 21 12 16 7"></polyline>
-						<line x1="21" y1="12" x2="9" y2="12"></line>
-					</>
-				);
-			default:
-				return null;
-		}
-	};
-
+// Composant Globe pour l'icône de langue
+const Globe = ({ size, className }) => {
 	return (
-		<li className="py-3">
-			<button
-				onClick={onClick}
-				className={`flex items-center w-full text-left transition-colors ${
-					danger
-						? "text-red-500 hover:text-red-600"
-						: "text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white"
-				}`}
-			>
-				<div className="w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center mr-3">
-					<svg
-						xmlns="http://www.w3.org/2000/svg"
-						width="18"
-						height="18"
-						viewBox="0 0 24 24"
-						fill="none"
-						stroke="currentColor"
-						strokeWidth="2"
-						strokeLinecap="round"
-						strokeLinejoin="round"
-					>
-						{getIcon()}
-					</svg>
-				</div>
-				<span className="font-medium">{title}</span>
-				{!danger && (
-					<svg
-						xmlns="http://www.w3.org/2000/svg"
-						width="18"
-						height="18"
-						viewBox="0 0 24 24"
-						fill="none"
-						stroke="currentColor"
-						strokeWidth="2"
-						strokeLinecap="round"
-						strokeLinejoin="round"
-						className="ml-auto text-gray-400"
-					>
-						<polyline points="9 18 15 12 9 6"></polyline>
-					</svg>
-				)}
-			</button>
-		</li>
+		<svg
+			xmlns="http://www.w3.org/2000/svg"
+			width={size}
+			height={size}
+			viewBox="0 0 24 24"
+			fill="none"
+			stroke="currentColor"
+			strokeWidth="2"
+			strokeLinecap="round"
+			strokeLinejoin="round"
+			className={className}
+		>
+			<circle cx="12" cy="12" r="10"></circle>
+			<line x1="2" y1="12" x2="22" y2="12"></line>
+			<path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+		</svg>
 	);
 };
 

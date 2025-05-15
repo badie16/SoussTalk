@@ -156,6 +156,89 @@ const changeUserPassword = async (req, res) => {
 		res.status(200).json({ message: "Mot de passe mis à jour avec succès" });
 	} catch (error) {
 		console.error("Erreur changement mot de passe:", error);
+		res
+			.status(500)
+			.json({ message: "Erreur serveur lors du changement de mot de passe" });
+	}
+};
+
+// Mettre à jour les préférences utilisateur
+const updateUserPreferences = async (req, res) => {
+	try {
+		const { id } = req.params;
+		const { preferences } = req.body;
+
+		// Vérifier que l'utilisateur met à jour ses propres préférences ou est admin
+		if (req.user.id !== id && req.user.role !== "admin") {
+			return res.status(403).json({ message: "Accès non autorisé" });
+		}
+
+		// Mettre à jour les préférences
+		const result = await userService.updateUserPreferences(id, preferences);
+
+		if (!result.success) {
+			return res
+				.status(400)
+				.json({
+					message:
+						result.message || "Erreur lors de la mise à jour des préférences",
+				});
+		}
+
+		res
+			.status(200)
+			.json({
+				message: "Préférences mises à jour avec succès",
+				data: result.data,
+			});
+	} catch (error) {
+		console.error("Erreur mise à jour préférences:", error);
+		res.status(500).json({ message: "Erreur serveur" });
+	}
+};
+
+// Exporter les données utilisateur
+const exportUserData = async (req, res) => {
+	try {
+		const { id } = req.params;
+
+		// Vérifier que l'utilisateur exporte ses propres données ou est admin
+		if (req.user.id !== id && req.user.role !== "admin") {
+			return res.status(403).json({ message: "Accès non autorisé" });
+		}
+
+		const result = await userService.exportUserData(id);
+
+		if (!result.success) {
+			return res.status(400).json({ message: result.message });
+		}
+
+		res.status(200).json(result.data);
+	} catch (error) {
+		console.error("Erreur exportation données:", error);
+		res.status(500).json({ message: "Erreur serveur" });
+	}
+};
+
+// Supprimer un compte utilisateur
+const deleteUserAccount = async (req, res) => {
+	try {
+		const { id } = req.params;
+
+		// Vérifier que l'utilisateur supprime son propre compte ou est admin
+		if (req.user.id !== id && req.user.role !== "admin") {
+			return res.status(403).json({ message: "Accès non autorisé" });
+		}
+
+		const result = await userService.deleteUser(id);
+
+		if (!result.success) {
+			return res.status(400).json({ message: result.message });
+		}
+
+		res.status(200).json({ message: "Compte supprimé avec succès" });
+	} catch (error) {
+		console.error("Erreur suppression compte:", error);
 		res.status(500).json({ message: "Erreur serveur" });
 	}
 };
@@ -165,4 +248,7 @@ module.exports = {
 	updateUserProfile,
 	updateUserAvatar,
 	changeUserPassword,
+	updateUserPreferences,
+	exportUserData,
+	deleteUserAccount,
 };

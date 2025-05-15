@@ -126,3 +126,29 @@ export const setupOnlineStatusListener = () => {
 	// Initialiser au chargement
 	updateOnlineStatus(navigator.onLine);
 };
+
+// Vérifier si le token est valide
+export const verifyToken = async () => {
+	const token = localStorage.getItem("token");
+	if (!token) {
+		return { valid: false, message: "Aucun token trouvé" };
+	}
+
+	try {
+		const response = await axios.get(`${API_URL}/api/users/test-auth`, {
+			headers: {
+				Authorization: `Bearer ${token}`,
+			},
+		});
+
+		return { valid: true, user: response.data.user };
+	} catch (error) {
+		console.error("Erreur vérification token:", error);
+
+		// Si le token est invalide, déconnecter l'utilisateur
+		localStorage.removeItem("token");
+		localStorage.removeItem("user");
+
+		return { valid: false, message: "Token invalide ou expiré" };
+	}
+};

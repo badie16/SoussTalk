@@ -48,6 +48,7 @@ const updateUser = async (id, updates) => {
 		"bio",
 		"gender",
 		"username",
+		"preferences",
 	];
 
 	const filteredUpdates = Object.keys(updates)
@@ -107,57 +108,171 @@ const updateAvatar = async (id, file) => {
 
 // Changer le mot de passe d'un utilisateur
 const changePassword = async (id, currentPassword, newPassword) => {
-	// Récupérer l'utilisateur
-	const user = await getUserById(id);
+	try {
+		// Récupérer l'utilisateur
+		const user = await getUserById(id);
 
-	if (!user) {
-		return { success: false, message: "Utilisateur non trouvé" };
+		if (!user) {
+			return { success: false, message: "Utilisateur non trouvé" };
+		}
+
+		// Vérifier le mot de passe actuel
+		const isMatch = await bcrypt.compare(currentPassword, user.password);
+
+		if (!isMatch) {
+			return { success: false, message: "Mot de passe actuel incorrect" };
+		}
+
+		// Hacher le nouveau mot de passe
+		const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+		// Mettre à jour le mot de passe dans la base de données
+		const { error } = await supabase
+			.from("users")
+			.update({
+				password: hashedPassword,
+				updated_at: new Date().toISOString(),
+			})
+			.eq("id", id);
+
+		if (error) {
+			console.error(
+				"Erreur lors de la mise à jour du mot de passe dans la table users:",
+				error
+			);
+			throw error;
+		}
+
+		// Mettre à jour le mot de passe dans Supabase Auth
+		try {
+			// Cette partie peut échouer si l'utilisateur n'existe pas dans auth.users
+			// Nous la rendons optionnelle pour éviter de bloquer le changement de mot de passe
+			const { error: authError } = await supabase.auth.admin.updateUserById(
+				id,
+				{ password: newPassword }
+			);
+
+			if (authError) {
+				console.warn(
+					"Avertissement: Impossible de mettre à jour le mot de passe dans auth.users:",
+					authError
+				);
+				// Ne pas lancer d'erreur, continuer l'exécution
+			}
+		} catch (authUpdateError) {
+			console.warn(
+				"Avertissement: Erreur lors de la mise à jour du mot de passe dans auth.users:",
+				authUpdateError
+			);
+			// Ne pas lancer d'erreur, continuer l'exécution
+		}
+
+		return { success: true, message: "Mot de passe mis à jour avec succès" };
+	} catch (error) {
+		console.error("Erreur dans changePassword:", error);
+		throw error;
 	}
+};
 
-	// Vérifier le mot de passe actuel
-	const isMatch = await bcrypt.compare(currentPassword, user.password);
+// Mettre à jour les préférences utilisateur
+const updateUserPreferences = async (id, preferences) => {
+	try {
+		// Convertir les préférences en JSON si ce n'est pas déjà le cas
+		const preferencesData =
+			typeof preferences === "string"
+				? preferences
+				: JSON.stringify(preferences);
 
-	if (!isMatch) {
-		return { success: false, message: "Mot de passe actuel incorrect" };
+		const { data, error } = await supabase
+			.from("users")
+			.update({
+				preferences: preferencesData,
+				updated_at: new Date().toISOString(),
+			})
+			.eq("id", id)
+			.select()
+			.single();
+
+		if (error) throw error;
+		return { success: true, data };
+	} catch (error) {
+		console.error("Erreur lors de la mise à jour des préférences:", error);
+		throw error;
 	}
+};
 
-	// Hacher le nouveau mot de passe
-	const hashedPassword = await bcrypt.hash(newPassword, 10);
+// Exporter les données utilisateur
+const exportUserData = async (id) => {
+	try {
+		// Récupérer les données de l'utilisateur
+		const userData = await getUserById(id);
 
-	// Mettre à jour le mot de passe dans la base de données
-	const { error } = await supabase
-		.from("users")
-		.update({ password: hashedPassword, updated_at: new Date().toISOString() })
-		.eq("id", id);
+		if (!userData) {
+			return { success: false, message: "Utilisateur non trouvé" };
+		}
 
-	if (error) throw error;
+		// Supprimer le mot de passe des données exportées
+		const { password, ...userDataWithoutPassword } = userData;
 
-	// Mettre à jour le mot de passe dans Supabase Auth
-	const { error: authError } = await supabase.auth.admin.updateUserById(id, {
-		password: newPassword,
-	});
+		// Récupérer d'autres données associées à l'utilisateur (messages, etc.)
+		// Exemple:
+		// const { data: messages } = await supabase
+		//   .from("messages")
+		//   .select("*")
+		//   .eq("user_id", id)
 
-	if (authError) throw authError;
-
-	return { success: true };
+		return {
+			success: true,
+			data: {
+				user: userDataWithoutPassword,
+				// messages: messages || [],
+				// Autres données...
+				exportDate: new Date().toISOString(),
+			},
+		};
+	} catch (error) {
+		console.error("Erreur lors de l'exportation des données:", error);
+		throw error;
+	}
 };
 
 // Supprimer un utilisateur
 const deleteUser = async (id) => {
-	// D'abord supprimer de la table users personnalisée
-	const { error: userDeleteError } = await supabase
-		.from("users")
-		.delete()
-		.eq("id", id);
+	try {
+		// D'abord supprimer de la table users personnalisée
+		const { error: userDeleteError } = await supabase
+			.from("users")
+			.delete()
+			.eq("id", id);
 
-	if (userDeleteError) throw userDeleteError;
+		if (userDeleteError) throw userDeleteError;
 
-	// Ensuite supprimer de auth.users
-	const { error: authDeleteError } = await supabase.auth.admin.deleteUser(id);
+		// Ensuite essayer de supprimer de auth.users
+		try {
+			const { error: authDeleteError } = await supabase.auth.admin.deleteUser(
+				id
+			);
 
-	if (authDeleteError) throw authDeleteError;
+			if (authDeleteError) {
+				console.warn(
+					"Avertissement: Impossible de supprimer l'utilisateur de auth.users:",
+					authDeleteError
+				);
+				// Ne pas lancer d'erreur, continuer l'exécution
+			}
+		} catch (authDeleteError) {
+			console.warn(
+				"Avertissement: Erreur lors de la suppression de l'utilisateur de auth.users:",
+				authDeleteError
+			);
+			// Ne pas lancer d'erreur, continuer l'exécution
+		}
 
-	return { success: true };
+		return { success: true, message: "Compte supprimé avec succès" };
+	} catch (error) {
+		console.error("Erreur lors de la suppression du compte:", error);
+		throw error;
+	}
 };
 
 module.exports = {
@@ -168,4 +283,6 @@ module.exports = {
 	updateAvatar,
 	changePassword,
 	deleteUser,
+	updateUserPreferences,
+	exportUserData,
 };

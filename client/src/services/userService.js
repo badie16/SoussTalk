@@ -17,6 +17,9 @@ export const getUserProfile = async (userId) => {
 	}
 
 	try {
+		// Afficher le token pour le débogage (à supprimer en production)
+		console.log("Token utilisé:", token);
+
 		const response = await axios.get(`${API_URL}/api/users/profile/${userId}`, {
 			headers: {
 				Authorization: `Bearer ${token}`,
@@ -26,6 +29,15 @@ export const getUserProfile = async (userId) => {
 		return { success: true, data: response.data };
 	} catch (error) {
 		console.error("Erreur récupération profil :", error);
+
+		// Afficher plus de détails sur l'erreur
+		if (error.response) {
+			console.error("Détails de l'erreur:", {
+				status: error.response.status,
+				data: error.response.data,
+			});
+		}
+
 		const message = error.response?.data?.message || "Erreur profil";
 		return { success: false, message };
 	}
@@ -133,12 +145,94 @@ export const changePassword = async (userId, currentPassword, newPassword) => {
 			}
 		);
 
-		return { success: true, data: response.data };
+		return { success: true, message: response.data.message };
 	} catch (error) {
 		console.error("Erreur changement mot de passe :", error);
 		const message =
 			error.response?.data?.message ||
 			"Erreur lors du changement de mot de passe";
+		return { success: false, message };
+	}
+};
+
+// Mettre à jour les préférences utilisateur
+export const updateUserPreferences = async (userId, preferences) => {
+	const token = localStorage.getItem("token");
+	if (!token) {
+		return { success: false, message: "Utilisateur non connecté." };
+	}
+
+	try {
+		const response = await axios.put(
+			`${API_URL}/api/users/preferences/${userId}`,
+			{ preferences },
+			{
+				headers: {
+					Authorization: `Bearer ${token}`,
+					"Content-Type": "application/json",
+				},
+			}
+		);
+
+		// Mettre à jour les préférences dans le localStorage
+		const currentUser = JSON.parse(localStorage.getItem("user") || "{}");
+		const updatedUser = { ...currentUser, preferences: preferences };
+		localStorage.setItem("user", JSON.stringify(updatedUser));
+
+		return { success: true, data: response.data };
+	} catch (error) {
+		console.error("Erreur mise à jour préférences :", error);
+		const message =
+			error.response?.data?.message ||
+			"Erreur lors de la mise à jour des préférences";
+		return { success: false, message };
+	}
+};
+
+// Exporter les données utilisateur
+export const exportUserData = async (userId) => {
+	const token = localStorage.getItem("token");
+	if (!token) {
+		return { success: false, message: "Utilisateur non connecté." };
+	}
+
+	try {
+		const response = await axios.get(`${API_URL}/api/users/export/${userId}`, {
+			headers: {
+				Authorization: `Bearer ${token}`,
+			},
+		});
+
+		return { success: true, data: response.data };
+	} catch (error) {
+		console.error("Erreur exportation données :", error);
+		const message =
+			error.response?.data?.message ||
+			"Erreur lors de l'exportation des données";
+		return { success: false, message };
+	}
+};
+
+// Supprimer le compte utilisateur
+export const deleteAccount = async (userId) => {
+	const token = localStorage.getItem("token");
+	if (!token) {
+		return { success: false, message: "Utilisateur non connecté." };
+	}
+
+	try {
+		const response = await axios.delete(`${API_URL}/api/users/${userId}`, {
+			headers: {
+				Authorization: `Bearer ${token}`,
+			},
+		});
+
+		return { success: true, message: response.data.message };
+	} catch (error) {
+		console.error("Erreur suppression compte :", error);
+		const message =
+			error.response?.data?.message ||
+			"Erreur lors de la suppression du compte";
 		return { success: false, message };
 	}
 };
