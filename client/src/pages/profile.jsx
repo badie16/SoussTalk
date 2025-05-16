@@ -121,11 +121,7 @@ const Profile = () => {
 			if (!user.id) {
 				navigate("/login");
 				return;
-			}
-
-			// Simuler un délai de chargement pour montrer le skeleton (à supprimer en production)
-			// await new Promise(resolve => setTimeout(resolve, 1500));
-
+			}		
 			const response = await getUserProfile(user.id);
 
 			if (!response.success) {
