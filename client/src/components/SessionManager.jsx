@@ -5,9 +5,9 @@ import {
 	getUserSessions,
 	terminateSession,
 	terminateAllSessions,
-	getCurrentSessionDuration,
 	getSessionStats,
 } from "../services/sessionService";
+import sessionService from "../services/sessionService"; // Import the default export
 import { formatTimeSince } from "../utils/deviceDetection";
 import Loading from "./Loading";
 import {
@@ -25,6 +25,7 @@ import {
 	Info,
 } from "lucide-react";
 import { useCallback } from "react";
+
 const SessionManager = ({ userId, compact = false }) => {
 	const [sessions, setSessions] = useState([]);
 	const [loading, setLoading] = useState(true);
@@ -86,7 +87,7 @@ const SessionManager = ({ userId, compact = false }) => {
 	// Mettre à jour la durée de la session actuelle
 	useEffect(() => {
 		const updateDuration = () => {
-			const duration = getCurrentSessionDuration();
+			const duration = sessionService.getCurrentSessionDuration(); // Use the imported default export
 			setCurrentDuration(duration || "");
 		};
 
@@ -98,50 +99,6 @@ const SessionManager = ({ userId, compact = false }) => {
 
 	// Gérer la terminaison d'une session
 	const handleTerminateSession = async (sessionId) => {
-		const loadSessions = async () => {
-			if (!userId) {
-				console.warn("No userId provided to SessionManager");
-				return;
-			}
-
-			setLoading(true);
-			setError("");
-
-			try {
-				console.log("Attempting to load sessions for user:", userId);
-				const result = await getUserSessions(userId);
-
-				if (result.success) {
-					console.log(
-						"Sessions loaded successfully:",
-						result.data?.length || 0
-					);
-					setSessions(result.data || []);
-				} else {
-					console.error("Failed to load sessions:", result.message);
-					setError(result.message || "Impossible de charger les sessions");
-				}
-
-				// Load stats
-				try {
-					console.log("Attempting to load session stats");
-					const statsResult = await getSessionStats(userId);
-					if (statsResult.success) {
-						console.log("Stats loaded successfully:", statsResult.data);
-						setStats(statsResult.data);
-					} else {
-						console.warn("Failed to load stats:", statsResult.message);
-					}
-				} catch (statsError) {
-					console.error("Error loading stats:", statsError);
-				}
-			} catch (error) {
-				console.error("Unexpected error loading sessions:", error);
-				setError("Erreur lors du chargement des sessions");
-			} finally {
-				setLoading(false);
-			}
-		};
 		if (!userId) return;
 
 		setLoading(true);
@@ -255,6 +212,36 @@ const SessionManager = ({ userId, compact = false }) => {
 		);
 	};
 
+	// Add a new function to handle logout of current session
+	const handleLogoutCurrentSession = async () => {
+		if (!userId) return;
+
+		const currentSessionId = localStorage.getItem("sessionId");
+		if (!currentSessionId) return;
+
+		setLoading(true);
+		try {
+			const result = await terminateSession(userId, currentSessionId);
+			if (result.success) {
+				// Clear local storage and redirect to login
+				localStorage.removeItem("token");
+				localStorage.removeItem("user");
+				localStorage.removeItem("sessionId");
+				localStorage.removeItem("sessionCreatedAt");
+
+				// Redirect to login page
+				window.location.href = "/login";
+			} else {
+				setError(result.message || "Impossible de terminer la session");
+			}
+		} catch (error) {
+			console.error("Erreur lors de la terminaison de la session:", error);
+			setError("Erreur lors de la terminaison de la session");
+		} finally {
+			setLoading(false);
+		}
+	};
+
 	// Version compacte pour l'intégration dans d'autres composants
 	if (compact) {
 		return (
@@ -331,6 +318,12 @@ const SessionManager = ({ userId, compact = false }) => {
 								Déconnecter les autres sessions
 							</button>
 						)}
+						<button
+							onClick={handleLogoutCurrentSession}
+							className="w-full mt-2 text-xs py-1 px-2 border border-red-300 rounded-md text-red-700 bg-white hover:bg-red-50 dark:bg-gray-800 dark:text-red-300 dark:border-red-700 dark:hover:bg-red-900/50"
+						>
+							Se déconnecter (session actuelle)
+						</button>
 					</>
 				)}
 			</div>
@@ -537,6 +530,16 @@ const SessionManager = ({ userId, compact = false }) => {
 						</button>
 					</div>
 				)}
+				<div className="mt-3">
+					<button
+						onClick={handleLogoutCurrentSession}
+						disabled={loading}
+						className="w-full flex justify-center items-center py-2 px-4 border border-red-300 rounded-md shadow-sm text-sm font-medium text-red-700 bg-white hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 dark:bg-gray-700 dark:text-red-300 dark:border-red-700 dark:hover:bg-red-900/50 disabled:opacity-50"
+					>
+						<LogOut size={16} className="mr-2" />
+						Se déconnecter (session actuelle)
+					</button>
+				</div>
 			</div>
 		</div>
 	);

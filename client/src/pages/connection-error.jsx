@@ -1,11 +1,22 @@
+"use client";
+
 import { useState, useEffect } from "react";
-import { RefreshCw, Wifi, WifiOff, CheckCircle } from "lucide-react";
+import { RefreshCw, Wifi, WifiOff, CheckCircle, ArrowLeft } from "lucide-react";
 
 export default function ConnectionError() {
 	const [isOnline, setIsOnline] = useState(navigator.onLine);
 	const [isChecking, setIsChecking] = useState(false);
 	const [checkComplete, setCheckComplete] = useState(false);
 	const [pulseAnimation, setPulseAnimation] = useState(true);
+	const [lastPath, setLastPath] = useState("/chat"); // Default path if none is stored
+
+	// Récupérer le chemin précédent depuis sessionStorage
+	useEffect(() => {
+		const storedPath = sessionStorage.getItem("lastPath");
+		if (storedPath) {
+			setLastPath(storedPath);
+		}
+	}, []);
 
 	// Surveiller l'état de la connexion
 	useEffect(() => {
@@ -32,15 +43,34 @@ export default function ConnectionError() {
 		setIsChecking(true);
 		setCheckComplete(false);
 
-		setTimeout(() => {
-			setIsChecking(false);
-			setCheckComplete(true);
+		// Tester la connexion en faisant une requête simple
+		fetch(`${window.location.origin}/ping`, {
+			method: "HEAD",
+			cache: "no-store",
+			headers: { "Cache-Control": "no-cache" },
+		})
+			.then(() => {
+				setIsOnline(true);
+			})
+			.catch(() => {
+				setIsOnline(navigator.onLine);
+			})
+			.finally(() => {
+				setTimeout(() => {
+					setIsChecking(false);
+					setCheckComplete(true);
 
-			// Réinitialiser l'état après 3 secondes
-			setTimeout(() => {
-				setCheckComplete(false);
-			}, 3000);
-		}, 2000);
+					// Réinitialiser l'état après 3 secondes
+					setTimeout(() => {
+						setCheckComplete(false);
+					}, 3000);
+				}, 2000);
+			});
+	};
+
+	// Retourner à la page précédente
+	const returnToPreviousPage = () => {
+		window.location.href = lastPath;
 	};
 
 	return (
@@ -110,6 +140,17 @@ export default function ConnectionError() {
 							<span>Actualiser la page</span>
 						</button>
 					</div>
+
+					{/* Bouton pour retourner à la page précédente */}
+					{isOnline && (
+						<button
+							onClick={returnToPreviousPage}
+							className="mt-4 flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white py-3 px-6 rounded-lg font-medium transition-colors w-full"
+						>
+							<ArrowLeft size={18} />
+							<span>Retourner à l'application</span>
+						</button>
+					)}
 
 					{/* Conseils de dépannage */}
 					{!isOnline && (

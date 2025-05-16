@@ -28,7 +28,7 @@ import {
 	updateUserPreferences,
 } from "../services/userService";
 import { logout, verifyToken } from "../services/authService";
-import Skeleton, {
+import {
 	ProfileCardSkeleton,
 	SettingsSectionSkeleton,
 } from "../components/Skeleton";
@@ -151,6 +151,10 @@ const Profile = () => {
 			}
 
 			const profileData = response.data || {};
+
+			// Add this log to debug the avatar URL
+			console.log("Profile data loaded:", profileData);
+			console.log("Avatar URL:", profileData.avatar_url);
 
 			// Formater les données du profil
 			setProfile({
@@ -605,6 +609,8 @@ const Profile = () => {
 									alt="Profile"
 									className="w-full h-full object-cover"
 									onError={(e) => {
+										console.log("Image failed to load:", e.target.src);
+										e.target.onerror = null; // Prevent infinite loop
 										e.target.src = "/placeholder.svg";
 									}}
 								/>
@@ -1257,62 +1263,60 @@ const Profile = () => {
 
 			{/* Tabs Navigation */}
 			<div className="max-w-3xl mx-auto px-4 pt-6 pb-2">
-				
-					<div className="flex space-x-1 border-b border-gray-200 dark:border-gray-700">
-						<button
-							onClick={() => handleTabChange("profile")}
-							className={`px-4 py-2 text-sm font-medium rounded-t-lg transition-colors duration-150 ${
-								activeTab === "profile"
-									? "text-green-600 border-b-2 border-green-500 dark:text-green-400 dark:border-green-400"
-									: "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
-							}`}
-						>
-							<div className="flex items-center">
-								<User size={16} className="mr-1" />
-								Profil
-							</div>
-						</button>
-						<button
-							onClick={() => handleTabChange("security")}
-							className={`px-4 py-2 text-sm font-medium rounded-t-lg transition-colors duration-150 ${
-								activeTab === "security"
-									? "text-green-600 border-b-2 border-green-500 dark:text-green-400 dark:border-green-400"
-									: "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
-							}`}
-						>
-							<div className="flex items-center">
-								<Lock size={16} className="mr-1" />
-								Sécurité
-							</div>
-						</button>
-						<button
-							onClick={() => handleTabChange("preferences")}
-							className={`px-4 py-2 text-sm font-medium rounded-t-lg transition-colors duration-150 ${
-								activeTab === "preferences"
-									? "text-green-600 border-b-2 border-green-500 dark:text-green-400 dark:border-green-400"
-									: "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
-							}`}
-						>
-							<div className="flex items-center">
-								<Settings size={16} className="mr-1" />
-								Préférences
-							</div>
-						</button>
-						<button
-							onClick={() => handleTabChange("privacy")}
-							className={`px-4 py-2 text-sm font-medium rounded-t-lg transition-colors duration-150 ${
-								activeTab === "privacy"
-									? "text-green-600 border-b-2 border-green-500 dark:text-green-400 dark:border-green-400"
-									: "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
-							}`}
-						>
-							<div className="flex items-center">
-								<Shield size={16} className="mr-1" />
-								Confidentialité
-							</div>
-						</button>
-					</div>
-				
+				<div className="flex space-x-1 border-b border-gray-200 dark:border-gray-700">
+					<button
+						onClick={() => handleTabChange("profile")}
+						className={`px-4 py-2 text-sm font-medium rounded-t-lg transition-colors duration-150 ${
+							activeTab === "profile"
+								? "text-green-600 border-b-2 border-green-500 dark:text-green-400 dark:border-green-400"
+								: "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
+						}`}
+					>
+						<div className="flex items-center">
+							<User size={16} className="mr-1" />
+							Profil
+						</div>
+					</button>
+					<button
+						onClick={() => handleTabChange("security")}
+						className={`px-4 py-2 text-sm font-medium rounded-t-lg transition-colors duration-150 ${
+							activeTab === "security"
+								? "text-green-600 border-b-2 border-green-500 dark:text-green-400 dark:border-green-400"
+								: "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
+						}`}
+					>
+						<div className="flex items-center">
+							<Lock size={16} className="mr-1" />
+							Sécurité
+						</div>
+					</button>
+					<button
+						onClick={() => handleTabChange("preferences")}
+						className={`px-4 py-2 text-sm font-medium rounded-t-lg transition-colors duration-150 ${
+							activeTab === "preferences"
+								? "text-green-600 border-b-2 border-green-500 dark:text-green-400 dark:border-green-400"
+								: "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
+						}`}
+					>
+						<div className="flex items-center">
+							<Settings size={16} className="mr-1" />
+							Préférences
+						</div>
+					</button>
+					<button
+						onClick={() => handleTabChange("privacy")}
+						className={`px-4 py-2 text-sm font-medium rounded-t-lg transition-colors duration-150 ${
+							activeTab === "privacy"
+								? "text-green-600 border-b-2 border-green-500 dark:text-green-400 dark:border-green-400"
+								: "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
+						}`}
+					>
+						<div className="flex items-center">
+							<Shield size={16} className="mr-1" />
+							Confidentialité
+						</div>
+					</button>
+				</div>
 			</div>
 
 			{/* Profile Content */}

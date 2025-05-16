@@ -190,6 +190,10 @@ const Chat = () => {
 							src={profileImage || "/placeholder.svg"}
 							alt="User profile"
 							className="object-cover w-full h-full"
+							onError={(e) => {
+								e.target.onerror = null; // Prevent infinite loop
+								e.target.src = "/placeholder.svg";
+							}}
 						/>
 					</Link>
 				</div>

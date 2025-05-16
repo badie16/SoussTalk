@@ -45,29 +45,55 @@ const createSession = async (userId, deviceInfo = {}) => {
 			is_suspicious: false, // By default, the session is not suspicious
 		};
 		console.log("Session data to insert:", sessionData);
+
 		// Check if an active session already exists for the same user, device, IP, and user-agent
-		const { data: existingSession, error: existingError } = await supabase
+		// Improved query to better match the same device/browser
+		const { data: existingSessions, error: existingError } = await supabase
 			.from("sessions")
 			.select("*")
 			.eq("user_id", userId)
-			.eq("ip_address", sessionData.ip_address)
-			.eq("user_agent", sessionData.user_agent)
-			.eq("device_name", sessionData.device_name)
-			.eq("is_active", true)
-			.limit(1)
-			.single();
-		if (existingError && existingError.code !== "PGRST116") {
-			console.error("Error checking existing session:", existingError);
+			.eq("is_active", true);
+
+		if (existingError) {
+			console.error("Error checking existing sessions:", existingError);
 			throw existingError;
 		}
-		if (existingSession) {
-			console.log("Reusing existing session:", existingSession.id);
 
-			// Optionally update the last_active
-			await updateSessionActivity(existingSession.id);
+		// Look for a matching session based on device fingerprint
+		const matchingSession = existingSessions?.find((session) => {
+			// Match based on user agent (most reliable identifier)
+			if (
+				session.user_agent &&
+				sessionData.user_agent &&
+				session.user_agent === sessionData.user_agent
+			) {
+				return true;
+			}
 
-			return existingSession;
+			// If user agent doesn't match, try matching on device name and IP
+			if (
+				session.device_name &&
+				sessionData.device_name &&
+				session.ip_address &&
+				sessionData.ip_address &&
+				session.device_name === sessionData.device_name &&
+				session.ip_address === sessionData.ip_address
+			) {
+				return true;
+			}
+
+			return false;
+		});
+
+		if (matchingSession) {
+			console.log("Reusing existing session:", matchingSession.id);
+
+			// Update the last_active timestamp
+			await updateSessionActivity(matchingSession.id);
+
+			return matchingSession;
 		}
+
 		// Insert the session into the database
 		const { data, error } = await supabase
 			.from("sessions")

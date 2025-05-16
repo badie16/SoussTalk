@@ -7,8 +7,16 @@ axios.interceptors.response.use(
 	(response) => response,
 	(error) => {
 		// Si l'erreur est liée à un problème de réseau, rediriger vers la page d'erreur de connexion
+		// mais ne pas supprimer les données d'authentification
 		if (!error.response) {
+			console.log(
+				"Erreur de connexion détectée, redirection vers la page d'erreur"
+			);
+			// Stocker l'URL actuelle pour pouvoir y revenir après la reconnexion
+			sessionStorage.setItem("lastPath", window.location.pathname);
 			window.location.href = "/connection-error";
+			// Retourner une promesse rejetée pour éviter que le code continue
+			return Promise.reject(new Error("Erreur de connexion réseau"));
 		}
 		return Promise.reject(error);
 	}
@@ -27,26 +35,29 @@ export const getCurrentUser = () => {
 	return user ? JSON.parse(user) : null;
 };
 
-//  Connexion
+// Improve the login function to handle session management better
 export const login = async (formData) => {
 	try {
 		const response = await axios.post(`${API_URL}/api/auth/login`, formData);
 
-		// Stocker le token et les données utilisateur
+		// Store the token and user data
 		localStorage.setItem("token", response.data.token);
 		localStorage.setItem("user", JSON.stringify(response.data.user));
 
-		// Create a new session
+		// Create a new session or reuse existing one
 		try {
 			// Import dynamically to avoid circular dependency
-			const sessionService = await import("../services/sessionService");
+			const sessionService = await import("./sessionService");
 			const sessionResult = await sessionService.createSession(
 				response.data.user.id
 			);
 			if (!sessionResult.success) {
 				console.warn("Failed to create session:", sessionResult.message);
 			} else {
-				console.log("Session created successfully:", sessionResult.data?.id);
+				console.log(
+					"Session created/reused successfully:",
+					sessionResult.data?.id
+				);
 			}
 		} catch (error) {
 			console.error("Error creating session:", error);
@@ -55,6 +66,16 @@ export const login = async (formData) => {
 		return { success: true, data: response.data };
 	} catch (error) {
 		console.error("Erreur login :", error);
+
+		// Si c'est une erreur de connexion réseau, ne pas afficher de message d'erreur spécifique
+		// car l'intercepteur va rediriger vers la page d'erreur de connexion
+		if (!error.response) {
+			return {
+				success: false,
+				message: "Problème de connexion au serveur",
+				isConnectionError: true,
+			};
+		}
 
 		const message = error.response?.data?.message || "Échec de la connexion";
 
@@ -121,6 +142,15 @@ export const signup = async (userData) => {
 	} catch (error) {
 		console.error("Erreur signup :", error.message);
 
+		// Si c'est une erreur de connexion réseau, ne pas afficher de message d'erreur spécifique
+		if (!error.response) {
+			return {
+				success: false,
+				message: "Problème de connexion au serveur",
+				isConnectionError: true,
+			};
+		}
+
 		const message = error.response?.data?.message || "Échec de l'inscription";
 
 		return {
@@ -176,7 +206,16 @@ export const verifyToken = async () => {
 	} catch (error) {
 		console.error("Erreur vérification token:", error);
 
-		// Si le token est invalide, déconnecter l'utilisateur
+		// Si c'est une erreur de connexion réseau, ne pas supprimer les données d'authentification
+		if (!error.response) {
+			return {
+				valid: false,
+				message: "Problème de connexion au serveur",
+				isConnectionError: true,
+			};
+		}
+
+		// Si le token est invalide (erreur de serveur), déconnecter l'utilisateur
 		localStorage.removeItem("token");
 		localStorage.removeItem("user");
 

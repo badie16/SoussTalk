@@ -129,7 +129,7 @@ export const terminateAllSessions = async (userId) => {
 };
 
 // Créer une nouvelle session avec informations détaillées
-export const createSession = async (userId) => {	
+export const createSession = async (userId) => {
 	const token = localStorage.getItem("token");
 	if (!token) {
 		return { success: false, message: "Utilisateur non connecté." };
