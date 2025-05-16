@@ -5,7 +5,6 @@ import { Search, Plus, Check, ArrowRight, Phone, Video } from "lucide-react";
 import "../index.css";
 import ChatDetail from "../components/chat-detail";
 import { fetchUsers } from "../services/userService";
-import ProfilePictureUploader from "../components/profile-picture-uploader";
 
 const Chat = () => {
 	const navigate = useNavigate();
@@ -97,20 +96,6 @@ const Chat = () => {
 	// Handle back button in mobile view
 	const handleBackToList = () => {
 		setShowChatList(true);
-	};
-
-	// Handle profile picture upload completion
-	const handleProfilePictureUpdate = (imageUrl) => {
-		setProfileImage(imageUrl);
-
-		// Update user data in localStorage
-		try {
-			const userData = JSON.parse(localStorage.getItem("user") || "{}");
-			userData.profileImage = imageUrl;
-			localStorage.setItem("user", JSON.stringify(userData));
-		} catch (error) {
-			console.error("Error updating profile picture in storage:", error);
-		}
 	};
 
 	// Filter contacts based on search query
