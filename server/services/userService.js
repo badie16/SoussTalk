@@ -179,9 +179,9 @@ const updateUserPreferences = async (id, preferences) => {
 	try {
 		// Convertir les préférences en JSON si ce n'est pas déjà le cas
 		const preferencesData =
-			typeof preferences === "string"
+			typeof preferences === "object"
 				? preferences
-				: JSON.stringify(preferences);
+				: JSON.parse(preferences);
 
 		const { data, error } = await supabase
 			.from("users")
@@ -213,20 +213,10 @@ const exportUserData = async (id) => {
 
 		// Supprimer le mot de passe des données exportées
 		const { password, ...userDataWithoutPassword } = userData;
-
-		// Récupérer d'autres données associées à l'utilisateur (messages, etc.)
-		// Exemple:
-		// const { data: messages } = await supabase
-		//   .from("messages")
-		//   .select("*")
-		//   .eq("user_id", id)
-
 		return {
 			success: true,
 			data: {
-				user: userDataWithoutPassword,
-				// messages: messages || [],
-				// Autres données...
+				user: userDataWithoutPassword,				
 				exportDate: new Date().toISOString(),
 			},
 		};

@@ -7,6 +7,7 @@ const {
 	updateUserProfile,
 	updateUserAvatar,
 	changeUserPassword,
+	updateUserPreferences,
 } = require("../controllers/userController");
 
 // Route de test pour vérifier l'authentification
@@ -26,5 +27,6 @@ router.get("/profile/:id", protect, getUserProfile);
 router.put("/profile/:id", protect, updateUserProfile);
 router.post("/avatar/:id", protect, upload.single("avatar"), updateUserAvatar);
 router.put("/password/:id", protect, changeUserPassword);
+router.put("/preferences/:id", protect, updateUserPreferences);
 
 module.exports = router;
