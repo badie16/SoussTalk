@@ -23,19 +23,17 @@ const Chat = () => {
 	useEffect(() => {
 		const loadUserAndContacts = async () => {
 			setIsLoading(true);
-
 			// Check for user authentication
 			const userData = localStorage.getItem("user");
 			if (!userData) {
 				navigate("/login");
 				return;
 			}
-
 			try {
 				// Parse user data
 				const user = JSON.parse(userData);
-				if (user.profileImage) {
-					setProfileImage(user.profileImage);
+				if (user.avatar_url) {
+					setProfileImage(user.avatar_url);
 				}
 				if (user.id) {
 					setCurrentUserId(user.id);
@@ -186,15 +184,19 @@ const Chat = () => {
 						to="/profile"
 						className="block w-10 h-10 rounded-full overflow-hidden border-2 border-green-500 transition-all hover:scale-110 hover:border-green-400 duration-300 focus:outline-none"
 					>
-						<img
-							src={profileImage || "/placeholder.svg"}
-							alt="User profile"
-							className="object-cover w-full h-full"
-							onError={(e) => {
-								e.target.onerror = null; // Prevent infinite loop
-								e.target.src = "/placeholder.svg";
-							}}
-						/>
+						{!isLoading ? (
+							<img
+								src={profileImage || "/placeholder.svg"}
+								alt="User profile"
+								className="object-cover w-full h-full"
+								onError={(e) => {
+									e.target.onerror = null; // Prevent infinite loop
+									e.target.src = "/placeholder.svg";
+								}}
+							/>
+						) : (
+							""
+						)}
 					</Link>
 				</div>
 			</div>
