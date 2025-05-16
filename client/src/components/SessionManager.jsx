@@ -9,6 +9,7 @@ import {
 	getSessionStats,
 } from "../services/sessionService";
 import { formatTimeSince } from "../utils/deviceDetection";
+import Loading from "./Loading";
 import {
 	LogOut,
 	AlertTriangle,
@@ -37,8 +38,8 @@ const SessionManager = ({ userId, compact = false }) => {
 
 	// Charger les sessions
 	useEffect(() => {
-	  loadSessions()
-	}, [userId])
+		loadSessions();
+	}, [userId]);
 
 	const loadSessions = useCallback(async () => {
 		if (!userId) {
@@ -438,9 +439,7 @@ const SessionManager = ({ userId, compact = false }) => {
 				</div>
 
 				{loading ? (
-					<div className="flex justify-center py-8">
-						<div className="w-8 h-8 border-t-4 border-green-500 border-solid rounded-full animate-spin"></div>
-					</div>
+					<Loading fullScreen={false}></Loading>
 				) : (
 					<div className="space-y-4">
 						{sessions.length > 0 ? (

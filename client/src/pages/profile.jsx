@@ -1257,15 +1257,7 @@ const Profile = () => {
 
 			{/* Tabs Navigation */}
 			<div className="max-w-3xl mx-auto px-4 pt-6 pb-2">
-				{isLoading ? (
-					<div className="flex space-x-1 border-b border-gray-200 dark:border-gray-700">
-						{[1, 2, 3, 4].map((i) => (
-							<div key={i} className="px-4 py-2">
-								<Skeleton width="80px" height="24px" rounded />
-							</div>
-						))}
-					</div>
-				) : (
+				
 					<div className="flex space-x-1 border-b border-gray-200 dark:border-gray-700">
 						<button
 							onClick={() => handleTabChange("profile")}
@@ -1320,7 +1312,7 @@ const Profile = () => {
 							</div>
 						</button>
 					</div>
-				)}
+				
 			</div>
 
 			{/* Profile Content */}
