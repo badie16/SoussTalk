@@ -12,12 +12,9 @@ import {
 	Eye,
 	EyeOff,
 	Bell,
-	Moon,
-	Sun,
 	Shield,
 	Download,
 	Trash2,
-	LogOut,
 	User,
 	Settings,
 } from "lucide-react";
@@ -36,9 +33,14 @@ import Skeleton, {
 	SettingsSectionSkeleton,
 } from "../components/Skeleton";
 import "../index.css";
+import "../theme.css";
+import { useTheme } from "../context/ThemeContext";
+import ThemeSelector from "../components/ThemeSelector";
+import SessionManager from "../components/SessionManager";
 
 const Profile = () => {
 	const navigate = useNavigate();
+	const { theme, changeTheme } = useTheme();
 
 	// États pour les données du profil
 	const [profile, setProfile] = useState({
@@ -98,6 +100,24 @@ const Profile = () => {
 	// État pour l'onglet actif
 	const [activeTab, setActiveTab] = useState("profile");
 
+	// Ajouter un état pour gérer l'animation du contenu
+	const [contentVisible, setContentVisible] = useState(true);
+
+	// Modifier la fonction de changement d'onglet pour inclure une animation fluide
+	const handleTabChange = (tab) => {
+		if (tab === activeTab) return;
+
+		// Masquer le contenu actuel
+		setContentVisible(false);
+
+		// Changer l'onglet après une courte transition
+		setTimeout(() => {
+			setActiveTab(tab);
+			// Rendre le nouveau contenu visible
+			setContentVisible(true);
+		}, 150);
+	};
+
 	// Vérifier l'authentification
 	useEffect(() => {
 		const checkAuth = async () => {
@@ -121,7 +141,7 @@ const Profile = () => {
 			if (!user.id) {
 				navigate("/login");
 				return;
-			}		
+			}
 			const response = await getUserProfile(user.id);
 
 			if (!response.success) {
@@ -163,6 +183,11 @@ const Profile = () => {
 
 					setPreferences(userPrefs);
 					setEditedPreferences(userPrefs);
+
+					// Synchroniser avec le ThemeContext
+					if (userPrefs.theme && userPrefs.theme !== theme) {
+						changeTheme(userPrefs.theme);
+					}
 				} catch (e) {
 					console.error("Erreur lors du parsing des préférences:", e);
 				}
@@ -173,7 +198,7 @@ const Profile = () => {
 		} finally {
 			setIsLoading(false);
 		}
-	}, [navigate]);
+	}, [navigate, theme, changeTheme]);
 
 	// Charger les données au montage du composant
 	useEffect(() => {
@@ -371,10 +396,8 @@ const Profile = () => {
 				setSuccessMessage("Préférences mises à jour avec succès!");
 
 				// Appliquer le thème si nécessaire
-				if (editedPreferences.theme === "dark") {
-					document.documentElement.classList.add("dark");
-				} else {
-					document.documentElement.classList.remove("dark");
+				if (editedPreferences.theme !== preferences.theme) {
+					changeTheme(editedPreferences.theme);
 				}
 
 				// Effacer le message de succès après 3 secondes
@@ -874,58 +897,18 @@ const Profile = () => {
 					)}
 				</div>
 
-				{/* Sessions Section */}
-				<div className="mt-6 bg-white dark:bg-gray-800 rounded-lg shadow-sm overflow-hidden">
-					<div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-						<h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200">
-							Sessions actives
-						</h2>
-					</div>
-					<div className="px-6 py-4">
-						<div className="space-y-4">
-							<div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
-								<div className="flex items-center">
-									<div className="w-10 h-10 rounded-full bg-green-100 dark:bg-green-800 flex items-center justify-center mr-3">
-										<svg
-											xmlns="http://www.w3.org/2000/svg"
-											width="18"
-											height="18"
-											viewBox="0 0 24 24"
-											fill="none"
-											stroke="currentColor"
-											strokeWidth="2"
-											strokeLinecap="round"
-											strokeLinejoin="round"
-											className="text-green-600 dark:text-green-300"
-										>
-											<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-											<circle cx="12" cy="7" r="4"></circle>
-										</svg>
-									</div>
-									<div>
-										<p className="font-medium text-gray-800 dark:text-gray-200">
-											Session actuelle
-										</p>
-										<p className="text-sm text-gray-500 dark:text-gray-400">
-											{new Date().toLocaleDateString()} - {navigator.platform}
-										</p>
-									</div>
-								</div>
-								<span className="px-2 py-1 bg-green-100 text-green-800 text-xs font-medium rounded-full dark:bg-green-800 dark:text-green-100">
-									Actif
-								</span>
-							</div>
+				{/* Sessions Section - Utilisation du nouveau composant SessionManager */}
+				<div className="mt-6">
+					{currentUser ? (
+						<SessionManager userId={currentUser.id} />
+					) : (
+						<div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm overflow-hidden p-6">
+							<p className="text-center text-gray-500 dark:text-gray-400">
+								Impossible de charger les informations de session. Utilisateur
+								non connecté.
+							</p>
 						</div>
-						<div className="mt-4">
-							<button
-								onClick={handleLogout}
-								className="w-full flex justify-center items-center py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600 dark:hover:bg-gray-600"
-							>
-								<LogOut size={16} className="mr-2" />
-								Se déconnecter de toutes les sessions
-							</button>
-						</div>
-					</div>
+					)}
 				</div>
 			</>
 		);
@@ -938,199 +921,137 @@ const Profile = () => {
 		}
 
 		return (
-			<div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm overflow-hidden">
-				<div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
-					<h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200">
-						Préférences utilisateur
-					</h2>
-					<button
-						onClick={handlePreferencesEditToggle}
-						className="text-green-600 hover:text-green-700 text-sm font-medium"
-					>
-						{isEditingPreferences ? "Annuler" : "Modifier"}
-					</button>
-				</div>
-				<div className="px-6 py-4 space-y-6">
-					{/* Theme */}
-					<div>
-						<label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-							Thème
-						</label>
-						{isEditingPreferences ? (
-							<div className="flex space-x-4">
-								<label className="flex items-center">
-									<input
-										type="radio"
-										name="theme"
-										value="light"
-										checked={editedPreferences.theme === "light"}
-										onChange={handlePreferenceChange}
-										className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300"
-									/>
-									<span className="ml-2 flex items-center">
-										<Sun size={16} className="mr-1 text-yellow-500" />
-										Clair
-									</span>
-								</label>
-								<label className="flex items-center">
-									<input
-										type="radio"
-										name="theme"
-										value="dark"
-										checked={editedPreferences.theme === "dark"}
-										onChange={handlePreferenceChange}
-										className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300"
-									/>
-									<span className="ml-2 flex items-center">
-										<Moon size={16} className="mr-1 text-blue-500" />
-										Sombre
-									</span>
-								</label>
-								<label className="flex items-center">
-									<input
-										type="radio"
-										name="theme"
-										value="system"
-										checked={editedPreferences.theme === "system"}
-										onChange={handlePreferenceChange}
-										className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300"
-									/>
-									<span className="ml-2 flex items-center">
-										<Settings size={16} className="mr-1 text-gray-500" />
-										Système
-									</span>
-								</label>
-							</div>
-						) : (
-							<div className="flex items-center text-gray-800 dark:text-gray-200">
-								{preferences.theme === "light" && (
-									<Sun size={18} className="mr-2 text-yellow-500" />
-								)}
-								{preferences.theme === "dark" && (
-									<Moon size={18} className="mr-2 text-blue-500" />
-								)}
-								{preferences.theme === "system" && (
-									<Settings size={18} className="mr-2 text-gray-500" />
-								)}
-								{preferences.theme === "light" && "Thème clair"}
-								{preferences.theme === "dark" && "Thème sombre"}
-								{preferences.theme === "system" && "Thème système"}
-							</div>
-						)}
-					</div>
+			<>
+				{/* Utilisation du nouveau composant ThemeSelector */}
+				<ThemeSelector />
 
-					{/* Notifications */}
-					<div>
-						<label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-							Notifications
-						</label>
-						{isEditingPreferences ? (
-							<div className="space-y-2">
-								<label className="flex items-center">
-									<input
-										type="checkbox"
-										name="notifications"
-										checked={editedPreferences.notifications}
-										onChange={handlePreferenceChange}
-										className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded"
-									/>
-									<span className="ml-2">Activer les notifications</span>
-								</label>
-							</div>
-						) : (
-							<div className="flex items-center text-gray-800 dark:text-gray-200">
-								<Bell size={18} className="mr-2 text-green-500" />
-								{preferences.notifications
-									? "Notifications activées"
-									: "Notifications désactivées"}
-							</div>
-						)}
+				{/* Autres préférences utilisateur */}
+				<div className="mt-6 bg-white dark:bg-gray-800 rounded-lg shadow-sm overflow-hidden">
+					<div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
+						<h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200">
+							Autres préférences
+						</h2>
+						<button
+							onClick={handlePreferencesEditToggle}
+							className="text-green-600 hover:text-green-700 text-sm font-medium"
+						>
+							{isEditingPreferences ? "Annuler" : "Modifier"}
+						</button>
 					</div>
-
-					{/* Language */}
-					<div>
-						<label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-							Langue
-						</label>
-						{isEditingPreferences ? (
-							<select
-								name="language"
-								value={editedPreferences.language}
-								onChange={handlePreferenceChange}
-								className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500 dark:bg-gray-700 dark:text-white"
-							>
-								<option value="fr">Français</option>
-								<option value="en">English</option>
-								<option value="ar">العربية</option>
-							</select>
-						) : (
-							<div className="flex items-center text-gray-800 dark:text-gray-200">
-								<Globe size={18} className="mr-2 text-blue-500" />
-								{preferences.language === "fr" && "Français"}
-								{preferences.language === "en" && "English"}
-								{preferences.language === "ar" && "العربية"}
-							</div>
-						)}
-					</div>
-
-					{/* Privacy */}
-					<div>
-						<label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-							Confidentialité
-						</label>
-						{isEditingPreferences ? (
-							<select
-								name="privacy"
-								value={editedPreferences.privacy}
-								onChange={handlePreferenceChange}
-								className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500 dark:bg-gray-700 dark:text-white"
-							>
-								<option value="public">
-									Public - Tout le monde peut voir mon profil
-								</option>
-								<option value="contacts">
-									Contacts - Seulement mes contacts peuvent voir mon profil
-								</option>
-								<option value="private">
-									Privé - Personne ne peut voir mon profil
-								</option>
-							</select>
-						) : (
-							<div className="flex items-center text-gray-800 dark:text-gray-200">
-								<Shield size={18} className="mr-2 text-red-500" />
-								{preferences.privacy === "public" &&
-									"Public - Tout le monde peut voir votre profil"}
-								{preferences.privacy === "contacts" &&
-									"Contacts - Seulement vos contacts peuvent voir votre profil"}
-								{preferences.privacy === "private" &&
-									"Privé - Personne ne peut voir votre profil"}
-							</div>
-						)}
-					</div>
-
-					{isEditingPreferences && (
-						<div className="pt-2">
-							<button
-								onClick={handleSavePreferences}
-								disabled={isLoading}
-								className="w-full flex justify-center items-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50"
-							>
-								{isLoading ? (
-									<>
-										<div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
-										Enregistrement...
-									</>
-								) : (
-									<>
-										<Check size={16} className="mr-2" />
-										Enregistrer les préférences
-									</>
-								)}
-							</button>
+					<div className="px-6 py-4 space-y-6">
+						{/* Notifications */}
+						<div>
+							<label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+								Notifications
+							</label>
+							{isEditingPreferences ? (
+								<div className="space-y-2">
+									<label className="flex items-center">
+										<input
+											type="checkbox"
+											name="notifications"
+											checked={editedPreferences.notifications}
+											onChange={handlePreferenceChange}
+											className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded"
+										/>
+										<span className="ml-2">Activer les notifications</span>
+									</label>
+								</div>
+							) : (
+								<div className="flex items-center text-gray-800 dark:text-gray-200">
+									<Bell size={18} className="mr-2 text-green-500" />
+									{preferences.notifications
+										? "Notifications activées"
+										: "Notifications désactivées"}
+								</div>
+							)}
 						</div>
-					)}
+
+						{/* Language */}
+						<div>
+							<label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+								Langue
+							</label>
+							{isEditingPreferences ? (
+								<select
+									name="language"
+									value={editedPreferences.language}
+									onChange={handlePreferenceChange}
+									className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500 dark:bg-gray-700 dark:text-white"
+								>
+									<option value="fr">Français</option>
+									<option value="en">English</option>
+									<option value="ar">العربية</option>
+								</select>
+							) : (
+								<div className="flex items-center text-gray-800 dark:text-gray-200">
+									<Globe size={18} className="mr-2 text-blue-500" />
+									{preferences.language === "fr" && "Français"}
+									{preferences.language === "en" && "English"}
+									{preferences.language === "ar" && "العربية"}
+								</div>
+							)}
+						</div>
+
+						{/* Privacy */}
+						<div>
+							<label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+								Confidentialité
+							</label>
+							{isEditingPreferences ? (
+								<select
+									name="privacy"
+									value={editedPreferences.privacy}
+									onChange={handlePreferenceChange}
+									className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500 dark:bg-gray-700 dark:text-white"
+								>
+									<option value="public">
+										Public - Tout le monde peut voir mon profil
+									</option>
+									<option value="contacts">
+										Contacts - Seulement mes contacts peuvent voir mon profil
+									</option>
+									<option value="private">
+										Privé - Personne ne peut voir mon profil
+									</option>
+								</select>
+							) : (
+								<div className="flex items-center text-gray-800 dark:text-gray-200">
+									<Shield size={18} className="mr-2 text-red-500" />
+									{preferences.privacy === "public" &&
+										"Public - Tout le monde peut voir votre profil"}
+									{preferences.privacy === "contacts" &&
+										"Contacts - Seulement vos contacts peuvent voir votre profil"}
+									{preferences.privacy === "private" &&
+										"Privé - Personne ne peut voir votre profil"}
+								</div>
+							)}
+						</div>
+
+						{isEditingPreferences && (
+							<div className="pt-2">
+								<button
+									onClick={handleSavePreferences}
+									disabled={isLoading}
+									className="w-full flex justify-center items-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50"
+								>
+									{isLoading ? (
+										<>
+											<div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+											Enregistrement...
+										</>
+									) : (
+										<>
+											<Check size={16} className="mr-2" />
+											Enregistrer les préférences
+										</>
+									)}
+								</button>
+							</div>
+						)}
+					</div>
 				</div>
-			</div>
+			</>
 		);
 	};
 
@@ -1347,8 +1268,8 @@ const Profile = () => {
 				) : (
 					<div className="flex space-x-1 border-b border-gray-200 dark:border-gray-700">
 						<button
-							onClick={() => setActiveTab("profile")}
-							className={`px-4 py-2 text-sm font-medium rounded-t-lg ${
+							onClick={() => handleTabChange("profile")}
+							className={`px-4 py-2 text-sm font-medium rounded-t-lg transition-colors duration-150 ${
 								activeTab === "profile"
 									? "text-green-600 border-b-2 border-green-500 dark:text-green-400 dark:border-green-400"
 									: "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
@@ -1360,8 +1281,8 @@ const Profile = () => {
 							</div>
 						</button>
 						<button
-							onClick={() => setActiveTab("security")}
-							className={`px-4 py-2 text-sm font-medium rounded-t-lg ${
+							onClick={() => handleTabChange("security")}
+							className={`px-4 py-2 text-sm font-medium rounded-t-lg transition-colors duration-150 ${
 								activeTab === "security"
 									? "text-green-600 border-b-2 border-green-500 dark:text-green-400 dark:border-green-400"
 									: "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
@@ -1373,8 +1294,8 @@ const Profile = () => {
 							</div>
 						</button>
 						<button
-							onClick={() => setActiveTab("preferences")}
-							className={`px-4 py-2 text-sm font-medium rounded-t-lg ${
+							onClick={() => handleTabChange("preferences")}
+							className={`px-4 py-2 text-sm font-medium rounded-t-lg transition-colors duration-150 ${
 								activeTab === "preferences"
 									? "text-green-600 border-b-2 border-green-500 dark:text-green-400 dark:border-green-400"
 									: "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
@@ -1386,8 +1307,8 @@ const Profile = () => {
 							</div>
 						</button>
 						<button
-							onClick={() => setActiveTab("privacy")}
-							className={`px-4 py-2 text-sm font-medium rounded-t-lg ${
+							onClick={() => handleTabChange("privacy")}
+							className={`px-4 py-2 text-sm font-medium rounded-t-lg transition-colors duration-150 ${
 								activeTab === "privacy"
 									? "text-green-600 border-b-2 border-green-500 dark:text-green-400 dark:border-green-400"
 									: "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
@@ -1404,7 +1325,13 @@ const Profile = () => {
 
 			{/* Profile Content */}
 			<div className="max-w-3xl mx-auto px-4 py-4 space-y-6">
-				{renderTabContent()}
+				<div
+					className={`transition-opacity duration-150 ease-in-out ${
+						contentVisible ? "opacity-100" : "opacity-0"
+					}`}
+				>
+					{renderTabContent()}
+				</div>
 			</div>
 		</div>
 	);

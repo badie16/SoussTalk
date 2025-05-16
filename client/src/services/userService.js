@@ -174,7 +174,6 @@ export const updateUserPreferences = async (userId, preferences) => {
 				},
 			}
 		);
-
 		// Mettre à jour les préférences dans le localStorage
 		const currentUser = JSON.parse(localStorage.getItem("user") || "{}");
 		const updatedUser = { ...currentUser, preferences: preferences };

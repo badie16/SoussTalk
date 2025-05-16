@@ -36,6 +36,22 @@ export const login = async (formData) => {
 		localStorage.setItem("token", response.data.token);
 		localStorage.setItem("user", JSON.stringify(response.data.user));
 
+		// Create a new session
+		try {
+			// Import dynamically to avoid circular dependency
+			const sessionService = await import("../services/sessionService");
+			const sessionResult = await sessionService.createSession(
+				response.data.user.id
+			);
+			if (!sessionResult.success) {
+				console.warn("Failed to create session:", sessionResult.message);
+			} else {
+				console.log("Session created successfully:", sessionResult.data?.id);
+			}
+		} catch (error) {
+			console.error("Error creating session:", error);
+		}
+
 		return { success: true, data: response.data };
 	} catch (error) {
 		console.error("Erreur login :", error);
@@ -52,8 +68,21 @@ export const login = async (formData) => {
 //  Déconnexion
 export const logout = async () => {
 	const token = localStorage.getItem("token");
+	const sessionId = localStorage.getItem("sessionId");
+	const user = JSON.parse(localStorage.getItem("user") || "{}");
 
 	try {
+		// Terminate the current session if it exists
+		if (sessionId && user.id) {
+			try {
+				// Import dynamically to avoid circular dependency
+				const sessionService = await import("./sessionService");
+				await sessionService.terminateSession(user.id, sessionId);
+			} catch (e) {
+				console.warn("Failed to terminate session:", e);
+			}
+		}
+
 		if (token) {
 			await axios
 				.post(
@@ -76,6 +105,8 @@ export const logout = async () => {
 		// Toujours supprimer les données locales
 		localStorage.removeItem("token");
 		localStorage.removeItem("user");
+		localStorage.removeItem("sessionId");
+		localStorage.removeItem("sessionCreatedAt");
 	}
 };
 

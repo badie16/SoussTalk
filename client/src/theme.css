@@ -1,0 +1,96 @@
+/* Fichier de styles pour les thèmes */
+
+/* Variables CSS pour les thèmes */
+:root {
+  /* Thème par défaut (light) */
+  --background-primary: #ffffff;
+  --background-secondary: #f3f4f6;
+  --text-primary: #1f2937;
+  --text-secondary: #4b5563;
+  --border-color: #e5e7eb;
+  --accent-color: #22c55e;
+  --accent-color-hover: #16a34a;
+  --accent-color-light: #dcfce7;
+
+  /* Transition pour les changements de thème */
+  --theme-transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+}
+
+/* Mode sombre */
+.dark {
+  --background-primary: #1a1a1a;
+  --background-secondary: #2a2a2a;
+  --text-primary: #f3f4f6;
+  --text-secondary: #9ca3af;
+  --border-color: #374151;
+  --accent-color: #22c55e;
+  --accent-color-hover: #16a34a;
+  --accent-color-light: #132e1f;
+}
+
+/* Appliquer les transitions */
+body,
+button,
+input,
+textarea,
+select,
+div,
+a {
+  transition: var(--theme-transition);
+}
+
+/* Classes utilitaires pour les composants */
+.bg-primary {
+  background-color: var(--background-primary);
+}
+
+.bg-secondary {
+  background-color: var(--background-secondary);
+}
+
+.text-primary {
+  color: var(--text-primary);
+}
+
+.text-secondary {
+  color: var(--text-secondary);
+}
+
+.border-theme {
+  border-color: var(--border-color);
+}
+
+.accent-bg {
+  background-color: var(--accent-color);
+}
+
+.accent-text {
+  color: var(--accent-color);
+}
+
+.accent-border {
+  border-color: var(--accent-color);
+}
+
+.accent-bg-light {
+  background-color: var(--accent-color-light);
+}
+
+/* Animation de transition de thème */
+.theme-transition-enter {
+  opacity: 0;
+}
+
+.theme-transition-enter-active {
+  opacity: 1;
+  transition: opacity 300ms;
+}
+
+.theme-transition-exit {
+  opacity: 1;
+}
+
+.theme-transition-exit-active {
+  opacity: 0;
+  transition: opacity 300ms;
+}
