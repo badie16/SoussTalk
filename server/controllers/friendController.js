@@ -41,8 +41,9 @@ exports.sendFriendRequest = async (req, res) => {
 // Annuler une demande d'amitié
 exports.cancelFriendRequest = async (req, res) => {
 	try {
-		const { userId, targetUserId } = getIds(req);
-		await friendService.cancelFriendRequest(userId, targetUserId);
+		console.log(getIds(req));
+		const { userId, targetUserIdParams } = getIds(req);
+		await friendService.cancelFriendRequest(userId, targetUserIdParams);
 		res
 			.status(200)
 			.json({ success: true, message: "Demande d'amitié annulée" });
@@ -122,5 +123,5 @@ exports.searchFriends = async (req, res) => {
 const getIds = (req) => ({
 	userId: req.user.id,
 	targetUserIdParams: req.params.targetUserId,
-	targetUserIdBody: req.body.friendId,
+	targetUserIdBody: req.body?.friendId,
 });
