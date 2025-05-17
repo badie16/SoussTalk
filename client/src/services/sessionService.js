@@ -73,6 +73,62 @@ export const getUserSessions = async (userId) => {
 	}
 };
 
+// Récupérer l'historique des sessions inactives
+export const getSessionHistory = async (userId, limit = 20) => {
+	const token = localStorage.getItem("token");
+	if (!token) {
+		return { success: false, message: "Utilisateur non connecté." };
+	}
+
+	try {
+		console.log("Fetching session history for user:", userId);
+		const response = await axios.get(
+			`${API_URL}/api/users/sessions/${userId}/history?limit=${limit}`,
+			{
+				headers: {
+					Authorization: `Bearer ${token}`,
+				},
+			}
+		);
+
+		console.log("Session history retrieved:", response.data.length);
+		return { success: true, data: response.data };
+	} catch (error) {
+		console.error("Error fetching session history:", error);
+		return handleRequestError(
+			error,
+			"Erreur lors de la récupération de l'historique des sessions"
+		);
+	}
+};
+
+// Marquer une session comme fiable (non suspecte)
+export const markSessionAsTrusted = async (sessionId) => {
+	const token = localStorage.getItem("token");
+	if (!token) {
+		return { success: false, message: "Utilisateur non connecté." };
+	}
+
+	try {
+		const response = await axios.put(
+			`${API_URL}/api/users/sessions/${sessionId}/trust`,
+			{},
+			{
+				headers: {
+					Authorization: `Bearer ${token}`,
+				},
+			}
+		);
+
+		return { success: true, message: response.data.message };
+	} catch (error) {
+		return handleRequestError(
+			error,
+			"Erreur lors du marquage de la session comme fiable"
+		);
+	}
+};
+
 // Terminer une session spécifique
 export const terminateSession = async (userId, sessionId) => {
 	const token = localStorage.getItem("token");
@@ -300,6 +356,7 @@ export const getCurrentSessionDuration = () => {
 
 export default {
 	getUserSessions,
+	getSessionHistory,
 	terminateSession,
 	terminateAllSessions,
 	createSession,
@@ -307,4 +364,5 @@ export default {
 	checkSuspiciousSession,
 	getSessionStats,
 	getCurrentSessionDuration,
+	markSessionAsTrusted,
 };

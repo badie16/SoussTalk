@@ -27,18 +27,17 @@ const createSession = async (userId, deviceInfo = {}) => {
 		const sessionData = {
 			id: uuidv4(), // Generate a unique ID for the session
 			user_id: userId,
-			// token:  , #tu peut ajouter un token qui iditifier session pour pa depluque
 			device_name: deviceInfo?.deviceName || "Unknown device",
 			device_type: deviceInfo?.deviceType || "Unknown",
-			// browser_name: deviceInfo?.browserName || null,
-			// browser_version: deviceInfo?.browserVersion || null,
-			// os_name: deviceInfo?.osName || null,
-			// os_version: deviceInfo?.osVersion || null,
-			// screen_resolution: deviceInfo?.screenResolution || null,
+			browser_name: deviceInfo?.browserName || null,
+			browser_version: deviceInfo?.browserVersion || null,
+			os_name: deviceInfo?.osName || null,
+			os_version: deviceInfo?.osVersion || null,
+			screen_resolution: deviceInfo?.screenResolution || null,
 			ip_address: deviceInfo?.ipAddress || null,
-			// location: deviceInfo?.location || null,
+			location: deviceInfo?.location || null,
 			user_agent: deviceInfo?.userAgent || null,
-			// language: deviceInfo?.language || null,
+			language: deviceInfo?.language || null,
 			created_at: new Date().toISOString(),
 			last_active: new Date().toISOString(),
 			is_active: true,
@@ -109,7 +108,12 @@ const createSession = async (userId, deviceInfo = {}) => {
 		console.log("Session created successfully:", data.id);
 
 		// Check if the session is suspicious (new location, new device, etc.)
-		await checkAndUpdateSuspiciousSession(userId, sessionData);
+		// Only if there are other active sessions to compare with
+		if (existingSessions && existingSessions.length > 0) {
+			await checkAndUpdateSuspiciousSession(userId, data);
+		} else {
+			console.log("First active session for user, not marking as suspicious");
+		}
 
 		return data;
 	} catch (error) {
@@ -228,6 +232,47 @@ const checkAndUpdateSuspiciousSession = async (userId, newSession) => {
 	}
 };
 
+// Mark a session as not suspicious (trusted by the user)
+const markSessionAsTrusted = async (sessionId) => {
+	try {
+		if (!sessionId) {
+			throw new Error("Session ID required");
+		}
+
+		// Check if the session exists
+		const { data: existingSession, error: checkError } = await supabase
+			.from("sessions")
+			.select("id")
+			.eq("id", sessionId)
+			.single();
+
+		if (checkError || !existingSession) {
+			console.log("Session not found:", checkError);
+			throw new Error("Session not found");
+		}
+
+		const { error } = await supabase
+			.from("sessions")
+			.update({
+				is_suspicious: false,
+				suspicious_reasons: null,
+				// is_trusted: true,
+			})
+			.eq("id", sessionId);
+
+		if (error) {
+			console.error("SQL error marking session as trusted:", error);
+			throw error;
+		}
+
+		console.log(`Session ${sessionId} marked as trusted`);
+		return true;
+	} catch (error) {
+		console.error("Error marking session as trusted:", error);
+		throw error;
+	}
+};
+
 // Get all active sessions for a user with improved error handling
 const getActiveSessions = async (userId) => {
 	try {
@@ -253,6 +298,36 @@ const getActiveSessions = async (userId) => {
 		return data || [];
 	} catch (error) {
 		console.error("Error retrieving sessions:", error);
+		throw error;
+	}
+};
+
+// Get all inactive (historical) sessions for a user
+const getInactiveSessions = async (userId, limit = 20) => {
+	try {
+		console.log(`Getting inactive sessions for user ${userId}`);
+
+		if (!userId) {
+			throw new Error("User ID required");
+		}
+
+		const { data, error } = await supabase
+			.from("sessions")
+			.select("*")
+			.eq("user_id", userId)
+			.eq("is_active", false)
+			.order("ended_at", { ascending: false })
+			.limit(limit);
+
+		if (error) {
+			console.error("SQL error retrieving inactive sessions:", error);
+			throw error;
+		}
+
+		console.log(`Retrieved ${data?.length || 0} inactive sessions`);
+		return data || [];
+	} catch (error) {
+		console.error("Error retrieving inactive sessions:", error);
 		throw error;
 	}
 };
@@ -449,11 +524,22 @@ const getSessionStats = async (userId) => {
 			throw suspiciousError;
 		}
 
+		// Get total sessions count (including inactive)
+		const { count: totalSessions, error: totalError } = await supabase
+			.from("sessions")
+			.select("id", { count: "exact" })
+			.eq("user_id", userId);
+
+		if (totalError) {
+			throw totalError;
+		}
+
 		const stats = {
 			activeSessions: activeSessions?.length || 0,
 			lastLogin: lastLogin?.created_at || null,
 			uniqueDevices: uniqueDeviceNames.size,
 			suspiciousLogins: suspiciousSessions?.length || 0,
+			totalSessions: totalSessions || 0,
 		};
 
 		console.log(`Session stats for user ${userId}:`, stats);
@@ -468,9 +554,11 @@ module.exports = {
 	createSession,
 	getSessionById,
 	getActiveSessions,
+	getInactiveSessions,
 	updateSessionActivity,
 	terminateSession,
 	terminateAllSessions,
 	getSessionStats,
 	checkAndUpdateSuspiciousSession,
+	markSessionAsTrusted,
 };
