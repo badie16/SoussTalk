@@ -12,7 +12,7 @@ const MessageList = ({ messages, currentUserId }) => {
   }, [messages])
 
   return (
-    <div className="flex-1 overflow-y-auto p-4">
+    <div className="flex-1 overflow-y-auto show-scrollbar-on-hover p-4">
       {messages.length === 0 ? (
         <div className="flex items-center justify-center h-full">
           <p className="text-gray-500 dark:text-gray-400">No messages yet. Start the conversation!</p>

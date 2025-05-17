@@ -1,10 +1,11 @@
 "use client"
 import { useState, useEffect } from "react"
 import { useNavigate, Link } from "react-router-dom"
-import { Search, Plus, Check } from "lucide-react"
+import { Search, Plus, Check, ArrowRight, Phone, Video } from "lucide-react"
 import "../index.css"
 import ChatDetail from "../components/chat-detail"
 import { fetchUsers } from "../services/userService"
+import ProfilePictureUploader from "../components/profile-picture-uploader"
 
 const Chat = () => {
   const navigate = useNavigate()
@@ -17,7 +18,7 @@ const Chat = () => {
   const [contacts, setContacts] = useState([])
   const [searchQuery, setSearchQuery] = useState("")
   const [isLoading, setIsLoading] = useState(true)
-  const [sidebarView, setSidebarView] = useState("chats") // "chats" or "contacts"
+  const [sidebarView, setSidebarView] = useState("chats") // "chats" or "friends"
 
   // Check if user is logged in and load contacts
   useEffect(() => {
@@ -74,7 +75,7 @@ const Chat = () => {
 
     // Toggle sidebar view when clicking users icon
     if (iconName === "users") {
-      setSidebarView("contacts")
+      setSidebarView("friends")
     } else if (iconName === "message-square") {
       setSidebarView("chats")
     }
@@ -85,6 +86,11 @@ const Chat = () => {
     setSelectedChat(chat)
     if (isMobileView) {
       setShowChatList(false)
+    }
+    // Switch back to chats view when selecting a chat from friends view
+    if (sidebarView === "friends") {
+      setSidebarView("chats")
+      setActiveIcon("message-square")
     }
   }
 
@@ -192,74 +198,37 @@ const Chat = () => {
 
       {/* Content area - with left margin to account for fixed sidebar */}
       <div className="flex flex-1 ml-[60px]">
-        {/* Chat list sidebar - conditionally shown on mobile */}
+        {/* Chat list or Friends list sidebar - conditionally shown on mobile */}
         {(showChatList || !isMobileView) && (
-          <div className={`${isMobileView ? "w-full" : "w-[320px]"} overflow-y-auto`}>
-            <div className="h-full bg-[#1a2236] border-r border-[#2a3447] flex flex-col">
-              {/* Header */}
-              <div className="p-4 flex justify-between items-center">
-                <h1 className="text-xl font-semibold text-white">
-                  {sidebarView === "contacts" ? "Contacts" : "Chats"}
-                </h1>
-                <button className="w-10 h-10 flex items-center justify-center rounded-full bg-[#2a3447] text-gray-300 hover:bg-[#3a4457] transition-colors">
-                  <Plus size={20} />
-                </button>
-              </div>
-
-              {/* Search */}
-              <div className="px-4 pb-4">
-                <div className="relative">
-                  <input
-                    type="text"
-                    placeholder="Search here.."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full bg-[#2a3447] text-gray-200 rounded-md py-2 pl-4 pr-10 focus:outline-none"
-                  />
-                  <Search className="absolute right-3 top-2.5 text-gray-400 h-5 w-5" />
-                </div>
-              </div>
-
-              
-
-              {/* Contacts or Chats list */}
-              <div className="flex-1 overflow-y-auto">
-                {isLoading ? (
-                  <div className="flex justify-center items-center h-32">
-                    <div className="w-8 h-8 border-4 border-green-500 border-t-transparent rounded-full animate-spin"></div>
-                  </div>
-                ) : (
-                  <div>
-                    {filteredContacts.length > 0 ? (
-                      filteredContacts.map((contact) => (
-                        <ChatItem
-                          key={contact.id}
-                          contact={contact}
-                          onClick={() => handleChatSelect(contact)}
-                          isSelected={selectedChat?.id === contact.id}
-                        />
-                      ))
-                    ) : (
-                      <div className="px-4 py-8 text-center">
-                        <p className="text-gray-400">
-                          {searchQuery ? `No contacts found for "${searchQuery}"` : "No contacts available"}
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            </div>
+          <div className={`${isMobileView ? "w-full" : "w-[320px]"} overflow-y-auto show-scrollbar-on-hover`}>
+            {sidebarView === "chats" ? (
+              <ChatListView
+                contacts={filteredContacts}
+                searchQuery={searchQuery}
+                setSearchQuery={setSearchQuery}
+                isLoading={isLoading}
+                selectedChat={selectedChat}
+                handleChatSelect={handleChatSelect}
+              />
+            ) : (
+              <FriendsView
+                contacts={filteredContacts}
+                searchQuery={searchQuery}
+                setSearchQuery={setSearchQuery}
+                isLoading={isLoading}
+                handleChatSelect={handleChatSelect}
+              />
+            )}
           </div>
         )}
 
         {/* Main content area - scrollable */}
         {(!showChatList || !isMobileView) && (
-          <div className={`${isMobileView ? "w-full" : "flex-1"} overflow-hidden`}>
+          <div className={`${isMobileView ? "w-full" : "flex-1"} overflow-hidden show-scrollbar-on-hover`}>
             {selectedChat ? (
               <ChatDetail chat={selectedChat} onBack={handleBackToList} currentUserId={currentUserId} />
             ) : (
-              <div className="flex-1 p-6 overflow-y-auto flex items-center justify-center h-full">
+              <div className="flex-1 p-6 overflow-y-auto show-scrollbar-on-hover flex items-center justify-center h-full">
                 <div className="text-center max-w-md w-full">
                   <div className="mx-auto w-24 h-24 bg-green-100 rounded-full flex items-center justify-center mb-6">
                     <svg
@@ -294,6 +263,177 @@ const Chat = () => {
         )}
       </div>
     </main>
+  )
+}
+
+// Chat List View Component
+const ChatListView = ({ contacts, searchQuery, setSearchQuery, isLoading, selectedChat, handleChatSelect }) => {
+  return (
+    <div className="h-full bg-[#1a2236] border-r border-[#2a3447] flex flex-col">
+      {/* Header */}
+      <div className="p-4 flex justify-between items-center">
+        <h1 className="text-xl font-semibold text-white">Chats</h1>
+        <button className="w-10 h-10 flex items-center justify-center rounded-full bg-[#2a3447] text-gray-300 hover:bg-[#3a4457] transition-colors">
+          <Plus size={20} />
+        </button>
+      </div>
+
+      {/* Search */}
+      <div className="px-4 pb-4">
+        <div className="relative">
+          <input
+            type="text"
+            placeholder="Search here.."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full bg-[#2a3447] text-gray-200 rounded-md py-2 pl-4 pr-10 focus:outline-none"
+          />
+          <Search className="absolute right-3 top-2.5 text-gray-400 h-5 w-5" />
+        </div>
+      </div>
+
+      {/* Chat list content */}
+      <div className="flex-1 overflow-y-auto show-scrollbar-on-hover">
+        {isLoading ? (
+          <div className="flex justify-center items-center h-32">
+            <div className="w-8 h-8 border-4 border-green-500 border-t-transparent rounded-full animate-spin"></div>
+          </div>
+        ) : (
+          <div>
+            {contacts.length > 0 ? (
+              contacts.map((contact) => (
+                <ChatItem
+                  key={contact.id}
+                  contact={contact}
+                  isSelected={selectedChat?.id === contact.id}
+                  onClick={() => handleChatSelect(contact)}
+                />
+              ))
+            ) : (
+              <div className="px-4 py-8 text-center">
+                <p className="text-gray-400">
+                  {searchQuery ? `No chats found for "${searchQuery}"` : "No chats available"}
+                </p>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+// Friends View Component
+const FriendsView = ({ contacts, searchQuery, setSearchQuery, isLoading, handleChatSelect }) => {
+  return (
+    <div className="h-full bg-[#1a2236] border-r border-[#2a3447] flex flex-col">
+      {/* Header */}
+      <div className="p-4 flex justify-between items-center">
+        <h1 className="text-xl font-semibold text-white">Friends</h1>
+        <button className="w-10 h-10 flex items-center justify-center rounded-full bg-[#2a3447] text-gray-300 hover:bg-[#3a4457] transition-colors">
+          <Plus size={20} />
+        </button>
+      </div>
+
+      {/* Search */}
+      <div className="px-4 pb-4">
+        <div className="relative">
+          <input
+            type="text"
+            placeholder="Search friends.."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full bg-[#2a3447] text-gray-200 rounded-md py-2 pl-4 pr-10 focus:outline-none"
+          />
+          <Search className="absolute right-3 top-2.5 text-gray-400 h-5 w-5" />
+        </div>
+      </div>
+
+      {/* Friends list content */}
+      <div className="flex-1 overflow-y-auto show-scrollbar-on-hover">
+        {isLoading ? (
+          <div className="flex justify-center items-center h-32">
+            <div className="w-8 h-8 border-4 border-green-500 border-t-transparent rounded-full animate-spin"></div>
+          </div>
+        ) : (
+          <div>
+            {/* Online Friends Section */}
+            <div className="px-4 mt-2">
+              <h2 className="text-xs font-semibold text-gray-400 mb-3 tracking-wider">ONLINE FRIENDS</h2>
+              <div className="space-y-1">
+                {contacts
+                  .filter((contact) => contact.online)
+                  .map((contact) => (
+                    <FriendItem key={contact.id} friend={contact} onClick={() => handleChatSelect(contact)} />
+                  ))}
+              </div>
+            </div>
+
+            {/* All Friends Section */}
+            <div className="px-4 mt-6 mb-4">
+              <h2 className="text-xs font-semibold text-gray-400 mb-3 tracking-wider">ALL FRIENDS</h2>
+              <div className="space-y-1">
+                {contacts.map((contact) => (
+                  <FriendItem key={contact.id} friend={contact} onClick={() => handleChatSelect(contact)} />
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+// Friend Item Component
+const FriendItem = ({ friend, onClick }) => {
+  return (
+    <div
+      className="flex items-center justify-between p-3 hover:bg-[#2a3447] rounded-md cursor-pointer"
+      onClick={onClick}
+    >
+      <div className="flex items-center">
+        <div className="relative mr-3">
+          {friend.avatar ? (
+            <img
+              src={friend.avatar || "/placeholder.svg"}
+              alt={friend.name}
+              className="h-10 w-10 rounded-full object-cover"
+            />
+          ) : (
+            <div
+              className={`h-10 w-10 rounded-full flex items-center justify-center ${
+                friend.name.includes("Miranda Valentine") || friend.name.includes("Dean Vargas")
+                  ? "bg-purple-100 text-purple-600"
+                  : friend.name.includes("Zimmerman") || friend.name.includes("Badie")
+                    ? "bg-gray-100 text-gray-600"
+                    : "bg-green-100 text-green-600"
+              }`}
+            >
+              <span className="font-medium">{friend.initials}</span>
+            </div>
+          )}
+          {friend.online && (
+            <span className="absolute bottom-0 right-0 block h-2.5 w-2.5 rounded-full bg-green-500 ring-1 ring-[#1a2236]" />
+          )}
+        </div>
+        <div>
+          <p className="text-sm font-medium text-white">{friend.name}</p>
+          <p className="text-xs text-gray-400">{friend.online ? "Online" : "Offline"}</p>
+        </div>
+      </div>
+      <div className="flex space-x-2">
+        <button className="p-2 rounded-full bg-[#2a3447] hover:bg-[#3a4457] text-gray-400">
+          <Phone size={16} />
+        </button>
+        <button className="p-2 rounded-full bg-[#2a3447] hover:bg-[#3a4457] text-gray-400">
+          <Video size={16} />
+        </button>
+        <button className="p-2 rounded-full bg-green-600 hover:bg-green-700 text-white">
+          <ArrowRight size={16} />
+        </button>
+      </div>
+    </div>
   )
 }
 

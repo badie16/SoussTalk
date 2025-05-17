@@ -6,12 +6,14 @@ import NotFound from "./pages/not-found";
 import ConnectionError from "./pages/connection-error";
 import ProtectedRoute from "./components/ProtectedRoute";
 import Profile from "./pages/profile";
+import Contacts from "./pages/contact";
 export default function App() {
 	return (
 		<Routes>
 			<Route path="/login" element={<Login />} />
 			<Route path="/register" element={<Register />} />
 			<Route path="/profile" element={<Profile />} />
+			<Route path="/contacts" element={<Contacts />} />
 			<Route
   path="/chat"
   element={

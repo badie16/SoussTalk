@@ -238,23 +238,27 @@ export const deleteAccount = async (userId) => {
 };
 // Rechercher des utilisateurs
 export const fetchUsers = async (searchQuery) => {
-    const token = localStorage.getItem("token");
-    if (!token) {
-      return { success: false, message: "Utilisateur non connecté." };
-    }
-  
-    try {
-      const response = await axios.get(`${API_URL}/api/users/search?q=${searchQuery}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-  
-      return { success: true, data: response.data };
-    } catch (error) {
-      console.error("Erreur recherche utilisateurs:", error);
-      const message = error.response?.data?.message || "Erreur lors de la recherche";
-      return { success: false, message };
-    }
+  const token = localStorage.getItem("token");
+  if (!token) {
+    return { success: false, message: "Utilisateur non connecté." };
+  }
+
+  try {
+    const response = await axios.get(`${API_URL}/api/users/search?q=${searchQuery}`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    return { success: true, data: response.data };
+  } catch (error) {
+    console.error("Erreur recherche utilisateurs:", error);
+    const message = error.response?.data?.message || "Erreur lors de la recherche";
+    return { success: false, message };
+  }
+};
+// Uploader une photo de profil (alias pour updateUserAvatar)
+export const uploadProfilePicture = async (userId, file) => {
+    return updateUserAvatar(userId, file);
   };
-  
+  // Uploader une photo de profil (alias pour updateUserAvatar)
