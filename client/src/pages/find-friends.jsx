@@ -12,7 +12,7 @@ import {
 	Bell,
 } from "lucide-react";
 import {
-	// searchUsers,
+	searchFriends,
 	getSuggestedFriends,
 	getFriendRequests,
 	sendFriendRequest,
@@ -64,13 +64,16 @@ const FindFriends = () => {
 	}, [navigate]);
 
 	// Gérer la recherche d'utilisateurs
-	const handleSearch = async () => {
-		if (!searchQuery.trim()) return;
-
+	const handleSearch = async (q = searchQuery) => {
+		if (!q.trim()) {
+			setSearchResults([]);
+			return;
+		}
 		setSearchLoading(true);
 		try {
-			// const results = await searchUsers(searchQuery);
-			setSearchResults([]);
+			const results = await searchFriends(q.trim());
+			console.log(results);
+			setSearchResults(results);
 			setActiveCategory("search");
 		} catch (error) {
 			console.error("Erreur lors de la recherche:", error);
@@ -172,7 +175,7 @@ const FindFriends = () => {
 			case "suggested":
 				return (
 					<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-						{/* {suggestedFriends.length > 0 ? (
+						{suggestedFriends.length > 0 ? (
 							suggestedFriends.map((user) => (
 								<UserCard
 									key={user.id}
@@ -181,7 +184,7 @@ const FindFriends = () => {
 									onCancelRequest={() => handleCancelRequest(user.id)}
 								/>
 							))
-						) : ( */}
+						) : (
 							<div className="col-span-full flex flex-col items-center justify-center py-10 text-center">
 								<Users size={48} className="text-gray-500 mb-4" />
 								<p className="text-gray-400 mb-2">
@@ -191,7 +194,7 @@ const FindFriends = () => {
 									Essayez de rechercher des amis par nom d'utilisateur
 								</p>
 							</div>
-						{/* )} */}
+						)}
 					</div>
 				);
 			case "requests":
@@ -273,12 +276,17 @@ const FindFriends = () => {
 									type="text"
 									placeholder="Rechercher par nom d'utilisateur..."
 									value={searchQuery}
-									onChange={(e) => setSearchQuery(e.target.value)}
-									onKeyPress={(e) => e.key === "Enter" && handleSearch()}
+									onChange={(e) => {
+										setSearchQuery(e.target.value);
+										handleSearch(e.target.value);
+										setActiveCategory(
+											e.target.value == "" ? "suggested" : "search"
+										);
+									}}
 									className="w-full bg-white dark:bg-gray-800 shadow-sm  text-gray-200 rounded-full py-3 pl-5 pr-12 focus:outline-none focus:ring-2 focus:ring-green-500"
 								/>
 								<button
-									onClick={handleSearch}
+									onClick={() => handleSearch(searchQuery)}
 									disabled={searchLoading}
 									className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-green-500 transition-colors"
 								>

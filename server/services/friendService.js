@@ -282,6 +282,43 @@ async function getMutualFriendsCount(userId1, userId2) {
 	}
 }
 
+exports.searchFriends = async (userId, searchTerm) => {
+	try {
+		const { data: friends } = await supabase
+			.from("friendships")
+			.select("user1_id, user2_id");
+
+		const friendIds = new Set(
+			friends
+				? friends
+						.filter((f) => f.user1_id === userId || f.user2_id === userId)
+						.map((f) => (f.user1_id === userId ? f.user2_id : f.user1_id))
+				: []
+		);
+		console.log(searchTerm);
+		const { data, error } = await supabase
+			.from("users")
+			.select("id, first_name, last_name, username, avatar_url")
+			.ilike("username", `%${searchTerm}%`)
+			.neq("id", userId);
+
+		if (error) throw error;
+
+		return data.map((user) => ({
+			id: user.id,
+			name: `${user.first_name} ${user.last_name}`,
+			username: user.username,
+			avatar: user.avatar_url,
+			initials: getInitials(`${user.first_name} ${user.last_name}`),
+			isFriend: friendIds.has(user.id),
+		}));
+	} catch (error) {
+		console.error("Erreur lors de la recherche d'utilisateurs:", error);
+		throw error;
+	}
+};
+
+
 // Obtenir les initiales à partir d'un nom
 function getInitials(name) {
 	if (!name) return "";

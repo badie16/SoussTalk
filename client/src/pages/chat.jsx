@@ -99,7 +99,7 @@ const Chat = () => {
 		contact.name.toLowerCase().includes(searchQuery.toLowerCase())
 	);
 	return (
-		<main className="flex h-screen bg-[#1a2236] overflow-hidden">
+		<main className="flex h-screen bg-gray-100 dark:bg-gray-900  themed-page overflow-hidden">
 			{/* Left navigation sidebar - fixed position */}
 			<SideNav activeIcon={activeIcon} onIconClick={handleIconClick}></SideNav>
 
@@ -186,7 +186,7 @@ const ChatListView = ({
 	handleChatSelect,
 }) => {
 	return (
-		<div className="h-full bg-[#1a2236] border-r border-[#2a3447] flex flex-col">
+		<div className="h-full bg-gray-100 dark:bg-gray-900  themed-page border-r border-[#2a3447] flex flex-col">
 			{/* Header */}
 			<div className="p-4 flex justify-between items-center">
 				<h1 className="text-xl font-semibold text-white">Chats</h1>

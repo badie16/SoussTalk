@@ -106,7 +106,19 @@ exports.getFriends = async (req, res) => {
 		res.status(500).json({ message: error | "Erreur serveur" });
 	}
 };
-
+exports.searchFriends = async (req, res) => {
+	const userId = req.user.id;
+	const q = req.query.query;
+	try {
+		if (!q) return res.status(400).json({ error: "Search term is required" });
+		const results = await friendService.searchFriends(userId, q);
+		res.json(results);
+	} catch (error) {
+		res
+			.status(500)
+			.json({ error: "Erreur lors de la recherche d'utilisateurs" });
+	}
+};
 const getIds = (req) => ({
 	userId: req.user.id,
 	targetUserIdParams: req.params.targetUserId,
