@@ -4,7 +4,7 @@ exports.createStory = async (user_id, media_url, type, caption) => {
   const { data, error } = await supabase
     .from('stories')
     .insert([{ user_id, media_url, type, caption }])
-    .select()
+    .select('*, users(username)')
     .single();
 
   if (error) throw new Error(error.message);
@@ -14,12 +14,13 @@ exports.createStory = async (user_id, media_url, type, caption) => {
 exports.getActiveStories = async () => {
   const { data, error } = await supabase
     .from('stories')
-    .select('*')
+    .select('*, users(username)')
     .gt('expires_at', new Date().toISOString());
 
   if (error) throw new Error(error.message);
   return data;
 };
+
 exports.deleteStory = async (storyId) => {
   const { error } = await supabase
     .from('stories')
