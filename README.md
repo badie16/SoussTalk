@@ -10,6 +10,8 @@
 **SoussTalk** is a real-time messaging platform with intelligent features like emotion and scam detection. This project is developed by a team of students from **ENSIASD**, with a strong focus on security, collaboration, and user experience.  
 >>>>>>> 5e520376c557ed43129fb159dedcb24cecef1696
 
+
+
 ---  
 
 ## 🌟 Key Features  
@@ -86,11 +88,11 @@ src/
 ## 🧑‍💻 Development Team  
 > Students from **École Nationale Supérieure de l'Intelligence Artificielle et des Sciences des Données – ENSIASD**  
 
-- Badie  
-- Khaoula  
-- Said  
-- Youssef  
-- Douae  
+- Badie    => leader, fullstack 
+- Khaoula  => frontend
+- Douae    => backend
+- Said     => frontend
+- Youssef  => backend
 
 ---  
 
