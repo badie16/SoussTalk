@@ -8,6 +8,7 @@ import ConnectionError from "./pages/connection-error";
 import ProtectedRoute from "./components/ProtectedRoute";
 import Profile from "./pages/profile";
 import Contacts from "./pages/contact";
+import FindFriends from "./pages/find-friends";
 import { ThemeProvider } from "./context/ThemeContext";
 
 export default function App() {
@@ -45,6 +46,14 @@ export default function App() {
 				element={renderWithTheme(
 					<ProtectedRoute>
 						<Chat />
+					</ProtectedRoute>
+				)}
+			/>
+			<Route
+				path="/find-friends"
+				element={renderWithTheme(
+					<ProtectedRoute>
+						<FindFriends />
 					</ProtectedRoute>
 				)}
 			/>

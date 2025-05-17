@@ -1,354 +1,505 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from "react"
-import { useNavigate, Link } from "react-router-dom"
-import { Search, Plus, Check } from "lucide-react"
-import "../index.css"
-import { fetchUsers } from "../services/userService"
+import { useState, useEffect } from "react";
+import { useNavigate, Link } from "react-router-dom";
+import {
+	Search,
+	Phone,
+	Video,
+	MessageSquare,
+	UserPlus,
+	MoreVertical,
+	X,
+	Check,
+	User,
+} from "lucide-react";
+import "../index.css";
+import SideNav from "../components/SideNav";
+import {
+	getFriends,
+	searchFriends,
+	removeFriend,
+	startChat,
+	startCall,
+} from "../services/friendService";
 
 const Contacts = () => {
-  const navigate = useNavigate()
-  const [profileImage, setProfileImage] = useState("/placeholder.svg")
-  const [activeIcon, setActiveIcon] = useState("users")
-  const [contacts, setContacts] = useState([])
-  const [searchQuery, setSearchQuery] = useState("")
-  const [isLoading, setIsLoading] = useState(true)
+	const navigate = useNavigate();
+	const [activeIcon, setActiveIcon] = useState("users");
+	const [friends, setFriends] = useState([]);
+	const [searchQuery, setSearchQuery] = useState("");
+	const [isLoading, setIsLoading] = useState(true);
+	const [currentUser, setCurrentUser] = useState(null);
+	const [selectedFriend, setSelectedFriend] = useState(null);
+	const [showProfileModal, setShowProfileModal] = useState(false);
 
-  // Check if user is logged in and load contacts
-  useEffect(() => {
-    const loadUserAndContacts = async () => {
-      setIsLoading(true)
+	// Charger l'utilisateur et ses amis
+	useEffect(() => {
+		const loadUserAndFriends = async () => {
+			setIsLoading(true);
 
-      // Check for user authentication
-      const userData = localStorage.getItem("user")
-      if (!userData) {
-        navigate("/login")
-        return
-      }
+			// Vérifier l'authentification de l'utilisateur
+			const userData = localStorage.getItem("user");
+			if (!userData) {
+				navigate("/login");
+				return;
+			}
 
-      try {
-        // Parse user data
-        const user = JSON.parse(userData)
-        if (user.profileImage) {
-          setProfileImage(user.profileImage)
-        }
+			try {
+				// Analyser les données de l'utilisateur
+				const user = JSON.parse(userData);
+				setCurrentUser(user);
 
-        // Fetch contacts from database
-        const userContacts = await fetchUsers()
-        setContacts(userContacts)
-      } catch (error) {
-        console.error("Error loading data:", error)
-      } finally {
-        setIsLoading(false)
-      }
-    }
+				// Récupérer les amis depuis l'API
+				const response = await getFriends();
+				if (response.success) {
+					setFriends(response.data);
+				} else {
+					console.error("Échec du chargement des amis:", response.message);
+				}
+			} catch (error) {
+				console.error("Erreur lors du chargement des données:", error);
+			} finally {
+				setIsLoading(false);
+			}
+		};
 
-    loadUserAndContacts()
-  }, [navigate])
+		loadUserAndFriends();
+	}, [navigate]);
 
-  // Handle icon click
-  const handleIconClick = (iconName) => {
-    setActiveIcon(iconName)
-  }
+	// Gérer le clic sur l'icône
+	const handleIconClick = (iconName) => {
+		setActiveIcon(iconName);
+	};
 
-  // Filter contacts based on search query
-  const filteredContacts = contacts.filter(
-    (contact) =>
-      contact.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (contact.email && contact.email.toLowerCase().includes(searchQuery.toLowerCase())) ||
-      (contact.phone && contact.phone.toLowerCase().includes(searchQuery.toLowerCase())),
-  )
+	// Rechercher des amis
+	const handleSearch = async () => {
+		if (!searchQuery.trim() || !currentUser) return;
 
-  // Start a chat with a contact
-  const startChat = (contact) => {
-    navigate("/chat", { state: { selectedContact: contact } })
-  }
+		setIsLoading(true);
+		try {
+			const response = await searchFriends(currentUser.id, searchQuery);
+			if (response.success) {
+				setFriends(response.data);
+			} else {
+				console.error("Échec de la recherche d'amis:", response.message);
+			}
+		} catch (error) {
+			console.error("Erreur lors de la recherche d'amis:", error);
+		} finally {
+			setIsLoading(false);
+		}
+	};
 
-  return (
-    <main className="flex h-screen bg-[#1a2236] overflow-hidden">
-      {/* Left navigation sidebar - fixed position */}
-      <div className="fixed left-0 top-0 bottom-0 w-[60px] bg-[#2e2e2e] flex flex-col items-center py-6 z-10">
-        {/* App logo */}
-        <div className="mb-8">
-          <div className="w-10 h-10 bg-green-600 rounded-md flex items-center justify-center transition-transform hover:scale-110 duration-300">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="20"
-              height="20"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              className="text-white"
-            >
-              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
-            </svg>
-          </div>
-        </div>
+	// Réinitialiser la recherche
+	const resetSearch = async () => {
+		if (!currentUser) return;
+		setSearchQuery("");
+		setIsLoading(true);
+		try {
+			const response = await getFriends(currentUser.id);
+			if (response.success) {
+				setFriends(response.data);
+			}
+		} catch (error) {
+			console.error("Erreur lors du chargement des amis:", error);
+		} finally {
+			setIsLoading(false);
+		}
+	};
 
-        {/* Navigation icons */}
-        <div className="flex flex-col items-center space-y-8 flex-1">
-          <NavIcon icon="user" active={activeIcon === "user"} onClick={() => handleIconClick("user")} to="/profile" />
-          <NavIcon
-            icon="message-square"
-            active={activeIcon === "message-square"}
-            onClick={() => handleIconClick("message-square")}
-            to="/chat"
-          />
-          <NavIcon
-            icon="users"
-            active={activeIcon === "users"}
-            onClick={() => handleIconClick("users")}
-            to="/contacts"
-          />
-          <NavIcon icon="phone" active={activeIcon === "phone"} onClick={() => handleIconClick("phone")} />
-          <NavIcon icon="bookmark" active={activeIcon === "bookmark"} onClick={() => handleIconClick("bookmark")} />
-          <NavIcon icon="settings" active={activeIcon === "settings"} onClick={() => handleIconClick("settings")} />
-        </div>
+	// Démarrer un chat avec un ami
+	const handleStartChat = async (friend) => {
+		if (!currentUser) return;
 
-        {/* Theme toggle */}
-        <div className="mt-auto mb-4">
-          <button className="text-gray-400 hover:text-gray-200 transition-colors hover:rotate-[30deg] transition-transform duration-300">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="20"
-              height="20"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
-            </svg>
-          </button>
-        </div>
+		try {
+			const response = await startChat(currentUser.id, friend.id);
+			if (response.success) {
+				navigate("/chat", { state: { selectedChat: response.data } });
+			} else {
+				console.error("Échec du démarrage du chat:", response.message);
+			}
+		} catch (error) {
+			console.error("Erreur lors du démarrage du chat:", error);
+		}
+	};
 
-        {/* Profile picture */}
-        <div className="mt-2">
-          <Link
-            to="/profile"
-            className="block w-10 h-10 rounded-full overflow-hidden border-2 border-green-500 transition-all hover:scale-110 hover:border-green-400 duration-300 focus:outline-none"
-          >
-            <img src={profileImage || "/placeholder.svg"} alt="User profile" className="object-cover w-full h-full" />
-          </Link>
-        </div>
-      </div>
+	// Démarrer un appel avec un ami
+	const handleStartCall = async (friend, isVideo = false) => {
+		if (!currentUser) return;
 
-      {/* Content area - with left margin to account for fixed sidebar */}
-      <div className="flex flex-1 ml-[60px]">
-        <div className="w-full overflow-y-auto">
-          <div className="h-full bg-[#1a2236] flex flex-col">
-            {/* Header */}
-            <div className="p-4 flex justify-between items-center">
-              <h1 className="text-xl font-semibold text-white">Chats</h1>
-              <button className="w-10 h-10 flex items-center justify-center rounded-full bg-[#2a3447] text-gray-300 hover:bg-[#3a4457] transition-colors">
-                <Plus size={20} />
-              </button>
-            </div>
+		try {
+			const response = await startCall(currentUser.id, friend.id, isVideo);
+			if (response.success) {
+				// Rediriger vers la page d'appel ou afficher une interface d'appel
+				console.log("Appel démarré:", response.data);
+				// Pour l'instant, nous affichons juste une alerte
+				alert(
+					`Démarrage d'un appel ${isVideo ? "vidéo" : "audio"} avec ${
+						friend.name
+					}`
+				);
+			} else {
+				console.error("Échec du démarrage de l'appel:", response.message);
+			}
+		} catch (error) {
+			console.error("Erreur lors du démarrage de l'appel:", error);
+		}
+	};
 
-            {/* Search */}
-            <div className="px-4 pb-4">
-              <div className="relative">
-                <input
-                  type="text"
-                  placeholder="Search here.."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full bg-[#2a3447] text-gray-200 rounded-md py-2 pl-4 pr-10 focus:outline-none"
-                />
-                <Search className="absolute right-3 top-2.5 text-gray-400 h-5 w-5" />
-              </div>
-            </div>
+	// Supprimer un ami
+	const handleRemoveFriend = async (friend) => {
+		if (!currentUser) return;
 
-            {/* Contacts list */}
-            <div className="flex-1 overflow-y-auto">
-              {isLoading ? (
-                <div className="flex justify-center items-center h-32">
-                  <div className="w-8 h-8 border-4 border-green-500 border-t-transparent rounded-full animate-spin"></div>
-                </div>
-              ) : (
-                <div>
-                  {filteredContacts.length > 0 ? (
-                    filteredContacts.map((contact) => (
-                      <ChatItem key={contact.id} contact={contact} onClick={() => startChat(contact)} />
-                    ))
-                  ) : (
-                    <div className="px-4 py-8 text-center">
-                      <p className="text-gray-400">
-                        {searchQuery ? `No contacts found for "${searchQuery}"` : "No contacts available"}
-                      </p>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
-    </main>
-  )
+		if (
+			window.confirm(
+				`Êtes-vous sûr de vouloir supprimer ${friend.name} de vos amis ?`
+			)
+		) {
+			try {
+				const response = await removeFriend(currentUser.id, friend.id);
+				if (response.success) {
+					setFriends(friends.filter((f) => f.id !== friend.id));
+					if (selectedFriend?.id === friend.id) {
+						setSelectedFriend(null);
+						setShowProfileModal(false);
+					}
+				} else {
+					console.error("Échec de la suppression de l'ami:", response.message);
+				}
+			} catch (error) {
+				console.error("Erreur lors de la suppression de l'ami:", error);
+			}
+		}
+	};
+
+	// Voir le profil d'un ami
+	const handleViewProfile = (friend) => {
+		setSelectedFriend(friend);
+		setShowProfileModal(true);
+	};
+
+	// Filtrer les amis en fonction de la recherche
+	const filteredFriends = friends.filter(
+		(friend) =>
+			friend.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+			(friend.email &&
+				friend.email.toLowerCase().includes(searchQuery.toLowerCase())) ||
+			(friend.phone &&
+				friend.phone.toLowerCase().includes(searchQuery.toLowerCase()))
+	);
+
+	return (
+		<main className="flex h-screen bg-gray-100 dark:bg-gray-900  themed-page overflow-hidden">
+			{/* Barre latérale de navigation */}
+			<SideNav activeIcon={activeIcon} onIconClick={handleIconClick} />
+
+			{/* Zone de contenu - avec marge gauche pour tenir compte de la barre latérale fixe */}
+			<div className="flex flex-1 ml-[60px]">
+				<div className="w-full overflow-y-auto">
+					<div className="h-full flex flex-col">
+						{/* En-tête */}
+						<div className="p-4 flex justify-between items-center">
+							<h1 className="text-xl font-semibold text-white">Mes Amis</h1>
+							<Link
+								to="/find-friends"
+								className="w-10 h-10 flex items-center justify-center rounded-full bg-green-600 text-white hover:bg-green-700 transition-colors"
+							>
+								<UserPlus size={20} />
+							</Link>
+						</div>
+
+						{/* Recherche */}
+						<div className="px-4 pb-4">
+							<div className="relative">
+								<input
+									type="text"
+									placeholder="Rechercher un ami..."
+									value={searchQuery}
+									onChange={(e) => setSearchQuery(e.target.value)}
+									onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+									className="w-full bg-white dark:bg-gray-800 shadow-sm text-gray-200 rounded-md py-2 pl-4 pr-10 focus:outline-none focus:ring-2 focus:ring-green-500"
+								/>
+								{searchQuery ? (
+									<button
+										onClick={resetSearch}
+										className="absolute right-10 top-2.5 text-gray-400 hover:text-gray-200"
+									>
+										<X size={18} />
+									</button>
+								) : null}
+								<button
+									onClick={handleSearch}
+									className="absolute right-3 top-2.5 text-gray-400 hover:text-gray-200"
+								>
+									<Search className="h-5 w-5" />
+								</button>
+							</div>
+						</div>
+
+						{/* Liste des amis */}
+						<div className="flex-1 overflow-y-auto">
+							{isLoading ? (
+								<div className="flex justify-center items-center h-32">
+									<div className="w-8 h-8 border-4 border-green-500 border-t-transparent rounded-full animate-spin"></div>
+								</div>
+							) : (
+								<div>
+									{filteredFriends.length > 0 ? (
+										filteredFriends.map((friend) => (
+											<FriendItem
+												key={friend.id}
+												friend={friend}
+												onChat={() => handleStartChat(friend)}
+												onCall={() => handleStartCall(friend, false)}
+												onVideoCall={() => handleStartCall(friend, true)}
+												onViewProfile={() => handleViewProfile(friend)}
+												onRemove={() => handleRemoveFriend(friend)}
+											/>
+										))
+									) : (
+										<div className="px-4 py-8 text-center">
+											<p className="text-gray-400">
+												{searchQuery
+													? `Aucun ami trouvé pour "${searchQuery}"`
+													: "Vous n'avez pas encore d'amis. Allez à la page 'Trouver des amis' pour commencer."}
+											</p>
+											{!searchQuery && (
+												<Link
+													to="/find-friends"
+													className="mt-4 inline-block px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors"
+												>
+													Trouver des amis
+												</Link>
+											)}
+										</div>
+									)}
+								</div>
+							)}
+						</div>
+					</div>
+				</div>
+			</div>
+
+			{/* Modal de profil d'ami */}
+			{showProfileModal && selectedFriend && (
+				<div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+					<div className="bg-[#2a3447] rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
+						{/* En-tête du modal */}
+						<div className="flex justify-between items-center p-4 border-b border-gray-700">
+							<h2 className="text-xl font-semibold text-white">
+								Profil de {selectedFriend.name}
+							</h2>
+							<button
+								onClick={() => setShowProfileModal(false)}
+								className="text-gray-400 hover:text-white transition-colors"
+							>
+								<X size={24} />
+							</button>
+						</div>
+
+						{/* Contenu du profil */}
+						<div className="p-4">
+							{/* Avatar et informations de base */}
+							<div className="flex flex-col items-center mb-6">
+								<div className="w-24 h-24 rounded-full overflow-hidden mb-4 bg-gray-700">
+									{selectedFriend.avatar ? (
+										<img
+											src={selectedFriend.avatar || "/placeholder.svg"}
+											alt={selectedFriend.name}
+											className="w-full h-full object-cover"
+										/>
+									) : (
+										<div className="w-full h-full flex items-center justify-center bg-green-600 text-white text-2xl font-semibold">
+											{selectedFriend.initials || selectedFriend.name.charAt(0)}
+										</div>
+									)}
+								</div>
+								<h3 className="text-xl font-semibold text-white mb-1">
+									{selectedFriend.name}
+								</h3>
+								{selectedFriend.status && (
+									<p className="text-gray-400 text-sm mb-2">
+										{selectedFriend.status}
+									</p>
+								)}
+								<div className="flex space-x-2 mt-2">
+									<button
+										onClick={() => handleStartChat(selectedFriend)}
+										className="p-2 bg-green-600 rounded-full text-white hover:bg-green-700 transition-colors"
+										title="Envoyer un message"
+									>
+										<MessageSquare size={20} />
+									</button>
+									<button
+										onClick={() => handleStartCall(selectedFriend, false)}
+										className="p-2 bg-green-600 rounded-full text-white hover:bg-green-700 transition-colors"
+										title="Appel audio"
+									>
+										<Phone size={20} />
+									</button>
+									<button
+										onClick={() => handleStartCall(selectedFriend, true)}
+										className="p-2 bg-green-600 rounded-full text-white hover:bg-green-700 transition-colors"
+										title="Appel vidéo"
+									>
+										<Video size={20} />
+									</button>
+								</div>
+							</div>
+
+							{/* Informations détaillées */}
+							{selectedFriend.email && (
+								<div className="mb-4">
+									<h4 className="text-sm font-medium text-gray-400 mb-1">
+										Email
+									</h4>
+									<p className="text-white">{selectedFriend.email}</p>
+								</div>
+							)}
+
+							{selectedFriend.phone && (
+								<div className="mb-4">
+									<h4 className="text-sm font-medium text-gray-400 mb-1">
+										Téléphone
+									</h4>
+									<p className="text-white">{selectedFriend.phone}</p>
+								</div>
+							)}
+
+							{selectedFriend.bio && (
+								<div className="mb-4">
+									<h4 className="text-sm font-medium text-gray-400 mb-1">
+										Bio
+									</h4>
+									<p className="text-white">{selectedFriend.bio}</p>
+								</div>
+							)}
+
+							{/* Actions supplémentaires */}
+							<div className="mt-6 pt-4 border-t border-gray-700">
+								<button
+									onClick={() => {
+										handleRemoveFriend(selectedFriend);
+									}}
+									className="w-full py-2 px-4 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors"
+								>
+									Supprimer de mes amis
+								</button>
+							</div>
+						</div>
+					</div>
+				</div>
+			)}
+		</main>
+	);
+};
+
+// Composant d'élément ami
+function FriendItem({
+	friend,
+	onChat,
+	onCall,
+	onVideoCall,
+	onViewProfile,
+	onRemove,
+}) {
+	const [showActions, setShowActions] = useState(false);
+
+	return (
+		<div className="relative flex items-center px-4 py-3 hover:bg-[#2a3447] transition-colors">
+			{/* Avatar de l'utilisateur */}
+			<div className="relative mr-3" onClick={onViewProfile}>
+				{friend.avatar ? (
+					<img
+						src={friend.avatar || "/placeholder.svg"}
+						alt={friend.name}
+						className="h-12 w-12 rounded-full object-cover cursor-pointer"
+					/>
+				) : (
+					<div className="h-12 w-12 rounded-full flex items-center justify-center bg-green-600 text-white cursor-pointer">
+						<span className="font-medium">
+							{friend.initials || friend.name.charAt(0)}
+						</span>
+					</div>
+				)}
+				{friend.online && (
+					<span className="absolute bottom-0 right-0 block h-3 w-3 rounded-full bg-green-500 ring-1 ring-[#1a2236]" />
+				)}
+			</div>
+
+			{/* Informations sur l'ami */}
+			<div
+				className="flex-1 min-w-0 pr-2 cursor-pointer"
+				onClick={onViewProfile}
+			>
+				<p className="text-base font-medium text-white truncate">
+					{friend.name}
+				</p>
+				<p className="text-sm text-gray-400 truncate">
+					{friend.status || (friend.online ? "En ligne" : "Hors ligne")}
+				</p>
+			</div>
+
+			{/* Actions rapides */}
+			<div className="flex items-center space-x-2">
+				<button
+					onClick={onChat}
+					className="p-2 text-gray-400 hover:text-white hover:bg-[#3a4457] rounded-full transition-colors"
+					title="Envoyer un message"
+				>
+					<MessageSquare size={18} />
+				</button>
+				<button
+					onClick={onCall}
+					className="p-2 text-gray-400 hover:text-white hover:bg-[#3a4457] rounded-full transition-colors"
+					title="Appel audio"
+				>
+					<Phone size={18} />
+				</button>
+				<button
+					onClick={onVideoCall}
+					className="p-2 text-gray-400 hover:text-white hover:bg-[#3a4457] rounded-full transition-colors"
+					title="Appel vidéo"
+				>
+					<Video size={18} />
+				</button>
+				<button
+					onClick={() => setShowActions(!showActions)}
+					className="p-2 text-gray-400 hover:text-white hover:bg-[#3a4457] rounded-full transition-colors"
+					title="Plus d'options"
+				>
+					<MoreVertical size={18} />
+				</button>
+			</div>
+
+			{/* Menu d'actions supplémentaires */}
+			{showActions && (
+				<div className="absolute right-4 top-16 bg-[#3a4457] rounded-md shadow-lg z-10 w-48 py-1">
+					<button
+						onClick={() => {
+							setShowActions(false);
+							onViewProfile();
+						}}
+						className="w-full text-left px-4 py-2 text-white hover:bg-[#4a5467] flex items-center"
+					>
+						<User size={16} className="mr-2" />
+						Voir le profil
+					</button>
+					<button
+						onClick={() => {
+							setShowActions(false);
+							onRemove();
+						}}
+						className="w-full text-left px-4 py-2 text-red-400 hover:bg-[#4a5467] flex items-center"
+					>
+						<X size={16} className="mr-2" />
+						Supprimer de mes amis
+					</button>
+				</div>
+			)}
+		</div>
+	);
 }
 
-// Chat Item Component
-function ChatItem({ contact, onClick }) {
-  // Format message preview
-  const getMessagePreview = () => {
-    if (contact.isYourMessage) {
-      return (
-        <div className="flex items-center">
-          <span className="text-gray-400 mr-1">You:</span>
-          <span className="text-gray-400 truncate">{contact.lastMessage}</span>
-        </div>
-      )
-    } else if (contact.lastMessage) {
-      return <span className="text-gray-400 truncate">{contact.lastMessage}</span>
-    }
-    return null
-  }
-
-  return (
-    <div className="flex items-center px-4 py-3 hover:bg-[#2a3447] cursor-pointer" onClick={onClick}>
-      {/* User avatar */}
-      <div className="relative mr-3">
-        {contact.avatar ? (
-          <img
-            src={contact.avatar || "/placeholder.svg"}
-            alt={contact.name}
-            className="h-10 w-10 rounded-full object-cover"
-          />
-        ) : (
-          <div
-            className={`h-10 w-10 rounded-full flex items-center justify-center ${
-              contact.name.includes("Miranda Valentine") || contact.name.includes("Dean Vargas")
-                ? "bg-purple-100 text-purple-600"
-                : contact.name.includes("Zimmerman") || contact.name.includes("Badie")
-                  ? "bg-gray-100 text-gray-600"
-                  : "bg-green-100 text-green-600"
-            }`}
-          >
-            <span className="font-medium">{contact.initials}</span>
-          </div>
-        )}
-        {contact.online && (
-          <span className="absolute bottom-0 right-0 block h-2.5 w-2.5 rounded-full bg-green-500 ring-1 ring-[#1a2236]" />
-        )}
-      </div>
-
-      {/* Message content */}
-      <div className="flex-1 min-w-0 pr-2">
-        <div className="flex justify-between items-center mb-1">
-          <p className="text-sm font-medium text-white truncate">{contact.name}</p>
-          <span className="text-xs text-gray-400 whitespace-nowrap ml-2">{contact.date}</span>
-        </div>
-        <div className="flex items-center justify-between">
-          <div className="flex-1 min-w-0">{getMessagePreview()}</div>
-
-          {contact.isYourMessage && (
-            <div className="ml-2">
-              {contact.status === "read" ? (
-                <Check size={16} className="text-blue-500" />
-              ) : (
-                <Check size={16} className="text-gray-500" />
-              )}
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
-  )
-}
-
-// Enhanced NavIcon component with transitions and direct link support
-const NavIcon = ({ icon, active, onClick, to }) => {
-  const getIcon = () => {
-    let d
-    switch (icon) {
-      case "user":
-        d = "M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"
-        return (
-          <>
-            <path d={d}></path>
-            <circle cx="12" cy="7" r="4"></circle>
-          </>
-        )
-      case "message-square":
-        d = "M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"
-        return <path d={d}></path>
-      case "users":
-        d = "M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"
-        return (
-          <>
-            <path d={d}></path>
-            <circle cx="9" cy="7" r="4"></circle>
-            <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
-            <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
-          </>
-        )
-      case "phone":
-        d =
-          "M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"
-        return <path d={d}></path>
-      case "bookmark":
-        d = "M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"
-        return <path d={d}></path>
-      case "settings":
-        d =
-          "M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"
-        return (
-          <>
-            <circle cx="12" cy="12" r="3"></circle>
-            <path d={d}></path>
-          </>
-        )
-      default:
-        return null
-    }
-  }
-
-  // Common classes for styling
-  const commonClasses = `p-3 rounded-md transition-all duration-300 ${
-    active
-      ? "text-white bg-green-600 shadow-md transform scale-110"
-      : "text-gray-400 hover:text-gray-200 hover:bg-gray-700/50"
-  }`
-
-  // SVG content
-  const svgContent = (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      width="20"
-      height="20"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className={`transition-transform duration-300 ${active ? "transform scale-110" : ""}`}
-    >
-      {getIcon()}
-    </svg>
-  )
-
-  // If a link is provided, use Link component
-  if (to) {
-    return (
-      <Link to={to} className={commonClasses} onClick={onClick}>
-        {svgContent}
-      </Link>
-    )
-  }
-
-  // Otherwise use a button
-  return (
-    <button onClick={onClick} className={commonClasses}>
-      {svgContent}
-    </button>
-  )
-}
-
-export default Contacts
+export default Contacts;
