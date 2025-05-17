@@ -7,10 +7,13 @@ import NotFound from "./pages/not-found";
 import ConnectionError from "./pages/connection-error";
 import ProtectedRoute from "./components/ProtectedRoute";
 import Profile from "./pages/profile";
+import Stories from "./pages/story";
 import Contacts from "./pages/contact";
+import AddStory from "./components/addStory";
 import FindFriends from "./pages/find-friends";
 import { ThemeProvider } from "./context/ThemeContext";
-
+import StoryViewer from "./pages/storyViewer";
+import StoryForm from "./pages/StoryForm";
 export default function App() {
 	const location = useLocation();
 	const isAuthPage =
@@ -49,6 +52,32 @@ export default function App() {
 					</ProtectedRoute>
 				)}
 			/>
+<Route
+				path="/story"
+				element={renderWithTheme(
+					<ProtectedRoute>
+						<Stories />
+					</ProtectedRoute>
+				)}
+			/>
+			<Route
+				path="/storyViewer"
+				element={renderWithTheme(
+					<ProtectedRoute>
+						<StoryViewer />
+					</ProtectedRoute>
+				)}
+			/>
+			<Route
+				path="/StoryForm"
+				element={renderWithTheme(
+					<ProtectedRoute>
+						<StoryForm/>
+					</ProtectedRoute>
+				)}
+			/>
+
+
 			<Route
 				path="/find-friends"
 				element={renderWithTheme(
@@ -63,6 +92,7 @@ export default function App() {
 			/>
 			<Route path="/" element={<Navigate to="/login" replace />} />
 			<Route path="*" element={renderWithTheme(<NotFound />)} />
+				<Route path="/stories/add" element={<AddStory />} />
 		</Routes>
 	);
 }

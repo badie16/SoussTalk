@@ -101,6 +101,7 @@ const Chat = () => {
 	return (
 		<main className="flex h-screen bg-gray-100 dark:bg-gray-900  themed-page overflow-hidden">
 			{/* Left navigation sidebar - fixed position */}
+
 			<SideNav activeIcon={activeIcon} onIconClick={handleIconClick}></SideNav>
 
 			{/* Content area - with left margin to account for fixed sidebar */}
