@@ -43,7 +43,7 @@ const SideNav = ({ activeIcon, onIconClick }) => {
 					icon="user"
 					active={activeIcon === "user"}
 					onClick={() => onIconClick && onIconClick("user")}
-					to="/profile"
+					to="/story"
 				/>
 				<NavIcon
 					icon="message-square"
