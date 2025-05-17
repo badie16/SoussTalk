@@ -4,6 +4,7 @@ const authRoutes = require("./routes/authRoutes");
 const userRoutes = require("./routes/userRoutes");
 const sessionRoutes = require("./routes/sessionRoutes");
 const storyRoutes = require("./routes/storyRoute");
+const friendRoutes = require("./routes/friendRoutes");
 // require("dotenv").config();
 const app = express();
 app.use(cors());
@@ -17,6 +18,9 @@ app.use("/api/auth", authRoutes);
 
 // Routes utilisateur
 app.use("/api/users", userRoutes);
+
+// Routes friend
+app.use("/api/friends", friendRoutes);
 // Importer les routes de session
 app.use("/api/users/sessions", sessionRoutes);
 

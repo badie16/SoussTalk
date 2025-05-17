@@ -10,6 +10,7 @@ import Profile from "./pages/profile";
 import Stories from "./pages/story";
 import Contacts from "./pages/contact";
 import AddStory from "./components/addStory";
+import FindFriends from "./pages/find-friends";
 import { ThemeProvider } from "./context/ThemeContext";
 import StoryViewer from "./pages/storyViewer";
 import StoryForm from "./pages/StoryForm";
@@ -77,6 +78,14 @@ export default function App() {
 			/>
 
 
+			<Route
+				path="/find-friends"
+				element={renderWithTheme(
+					<ProtectedRoute>
+						<FindFriends />
+					</ProtectedRoute>
+				)}
+			/>
 			<Route
 				path="/connection-error"
 				element={renderWithTheme(<ConnectionError />)}
