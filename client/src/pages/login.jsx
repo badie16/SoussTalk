@@ -48,12 +48,19 @@ export default function Login() {
 			if (result.success) {
 				navigate("/chat");
 			} else {
-				setError(
-					result.message || "Une erreur est survenue lors de la connexion."
-				);
+				// Si c'est une erreur de connexion, ne pas afficher de message d'erreur
+				// car l'intercepteur va rediriger vers la page d'erreur de connexion
+				if (!result.isConnectionError) {
+					setError(
+						result.message || "Une erreur est survenue lors de la connexion."
+					);
+				}
 			}
 		} catch (err) {
-			setError(err.message || "Connexion échouée. Veuillez réessayer.");
+			// Ne pas afficher d'erreur si c'est un problème de connexion
+			if (err.message !== "Erreur de connexion réseau") {
+				setError(err.message || "Connexion échouée. Veuillez réessayer.");
+			}
 		} finally {
 			setLoading(false);
 		}
@@ -79,6 +86,11 @@ export default function Login() {
 						src="/images/chat-illustration.png"
 						alt="SoussTalk Illustration"
 						className="max-w-full h-auto"
+						onError={(e) => {
+							console.error("Failed to load image:", e);
+							e.target.src =
+								"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' fill='%23f0f0f0'/%3E%3Ctext x='50' y='50' fontFamily='Arial' fontSize='14' textAnchor='middle' alignmentBaseline='middle' fill='%23888888'%3EImage%3C/text%3E%3C/svg%3E";
+						}}
 					/>
 				</div>
 

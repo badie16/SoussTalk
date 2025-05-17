@@ -126,20 +126,15 @@ const changeUserPassword = async (req, res) => {
 
 		// Validation des données
 		if (!currentPassword || !newPassword) {
-			return res
-				.status(400)
-				.json({
-					message: "Mot de passe actuel et nouveau mot de passe requis",
-				});
+			return res.status(400).json({
+				message: "Mot de passe actuel et nouveau mot de passe requis",
+			});
 		}
 
 		if (newPassword.length < 8) {
-			return res
-				.status(400)
-				.json({
-					message:
-						"Le nouveau mot de passe doit contenir au moins 8 caractères",
-				});
+			return res.status(400).json({
+				message: "Le nouveau mot de passe doit contenir au moins 8 caractères",
+			});
 		}
 
 		// Changer le mot de passe
@@ -177,20 +172,16 @@ const updateUserPreferences = async (req, res) => {
 		const result = await userService.updateUserPreferences(id, preferences);
 
 		if (!result.success) {
-			return res
-				.status(400)
-				.json({
-					message:
-						result.message || "Erreur lors de la mise à jour des préférences",
-				});
+			return res.status(400).json({
+				message:
+					result.message || "Erreur lors de la mise à jour des préférences",
+			});
 		}
 
-		res
-			.status(200)
-			.json({
-				message: "Préférences mises à jour avec succès",
-				data: result.data,
-			});
+		res.status(200).json({
+			message: "Préférences mises à jour avec succès",
+			data: result.data,
+		});
 	} catch (error) {
 		console.error("Erreur mise à jour préférences:", error);
 		res.status(500).json({ message: "Erreur serveur" });
@@ -242,7 +233,7 @@ const deleteUserAccount = async (req, res) => {
 		res.status(500).json({ message: "Erreur serveur" });
 	}
 };
-
+// Exporter les fonctions
 module.exports = {
 	getUserProfile,
 	updateUserProfile,

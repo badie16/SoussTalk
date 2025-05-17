@@ -14,6 +14,9 @@ import {
 	logout as logoutService,
 } from "../services/authService";
 import Loading from "../components/Loading";
+// Ajouter la gestion des sessions dans AuthContext
+// Ajoutez ces imports:
+import { terminateSession } from "../services/sessionService";
 
 // Création du contexte - exporter directement ici
 export const AuthContext = createContext(null);
@@ -43,6 +46,20 @@ export const AuthProvider = ({ children }) => {
 			await logoutService();
 			setUser(null);
 			setToken(null);
+			// Dans handleLogout, avant de naviguer vers /login, ajoutez:
+			// Terminer la session actuelle
+			const sessionId = localStorage.getItem("sessionId");
+			if (sessionId) {
+				try {
+					const user = JSON.parse(localStorage.getItem("user") || "{}");
+					if (user.id) {
+						await terminateSession(user.id, sessionId);
+					}
+				} catch (error) {
+					console.warn("Erreur lors de la terminaison de la session:", error);
+				}
+				localStorage.removeItem("sessionId");
+			}
 			navigate("/login");
 		} catch (error) {
 			console.error("Erreur de déconnexion:", error);
@@ -58,6 +75,7 @@ export const AuthProvider = ({ children }) => {
 				// Récupérer le token et l'utilisateur du localStorage
 				const storedToken = localStorage.getItem("token");
 				const storedUser = localStorage.getItem("user");
+				const sessionId = localStorage.getItem("sessionId");
 
 				if (storedToken && storedUser) {
 					// Vérifier la validité du token avec Supabase
@@ -71,6 +89,19 @@ export const AuthProvider = ({ children }) => {
 						// Token valide, définir l'utilisateur
 						setToken(storedToken);
 						setUser(JSON.parse(storedUser));
+
+						// Update session activity if we have a session
+						if (sessionId) {
+							try {
+								// Import dynamically to avoid circular dependency
+								const sessionService = await import(
+									"../services/sessionService"
+								);
+								await sessionService.updateSessionActivity(sessionId);
+							} catch (error) {
+								console.warn("Failed to update session activity:", error);
+							}
+						}
 					}
 				}
 			} catch (error) {
@@ -92,11 +123,10 @@ export const AuthProvider = ({ children }) => {
 	const handleLogin = async (credentials) => {
 		setLoading(true);
 		try {
-			const result = await loginService(credentials);
-
+			const result = await loginService(credentials);			
 			if (result.success) {
 				setUser(result.data.user);
-				setToken(result.data.token);
+				setToken(result.data.token);				
 				return { success: true };
 			} else {
 				return { success: false, message: result.message };

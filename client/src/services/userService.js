@@ -157,6 +157,7 @@ export const changePassword = async (userId, currentPassword, newPassword) => {
 
 // Mettre à jour les préférences utilisateur
 export const updateUserPreferences = async (userId, preferences) => {
+	console.log(preferences);
 	const token = localStorage.getItem("token");
 	if (!token) {
 		return { success: false, message: "Utilisateur non connecté." };
@@ -173,7 +174,6 @@ export const updateUserPreferences = async (userId, preferences) => {
 				},
 			}
 		);
-
 		// Mettre à jour les préférences dans le localStorage
 		const currentUser = JSON.parse(localStorage.getItem("user") || "{}");
 		const updatedUser = { ...currentUser, preferences: preferences };
@@ -236,29 +236,134 @@ export const deleteAccount = async (userId) => {
 		return { success: false, message };
 	}
 };
-// Rechercher des utilisateurs
-export const fetchUsers = async (searchQuery) => {
-  const token = localStorage.getItem("token");
-  if (!token) {
-    return { success: false, message: "Utilisateur non connecté." };
-  }
+// Function to fetch user data including profile pictures
+export const fetchUsers = async () => {
+	try {
+		// In a real app, you would fetch users from your API
+		// Example: const response = await fetch('/api/users');
+		// const data = await response.json();
 
-  try {
-    const response = await axios.get(`${API_URL}/api/users/search?q=${searchQuery}`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
+		// For now, we'll return mock data
+		const users = [
+			{
+				id: "1",
+				name: "Badie dev",
+				initials: "BD",
+				online: true,
+				lastMessage: "👍",
+				date: "2023-05-02",
+				isYourMessage: true,
+				status: "read",
+			},
+			{
+				id: "2",
+				name: "mama Ima",
+				initials: "MI",
+				lastMessage: "hello",
+				date: "2023-02-26",
+				isYourMessage: true,
+				status: "delivered",
+			},
+			{
+				id: "3",
+				name: "test User",
+				initials: "TU",
+				lastMessage: "👍",
+				date: "2024-12-12",
+				isYourMessage: true,
+				status: "delivered",
+			},
+			{
+				id: "4",
+				name: "jawad amohoche",
+				initials: "JA",
+				lastMessage: "hello",
+				date: "2024-05-03",
+				isYourMessage: false,
+			},
+			{
+				id: "5",
+				name: "Marguerite Campbell",
+				initials: "MC",
+				online: true,
+				lastMessage: "Let's discuss the project tomorrow",
+				date: "2024-05-01",
+				isYourMessage: false,
+			},
+		];
 
-    return { success: true, data: response.data };
-  } catch (error) {
-    console.error("Erreur recherche utilisateurs:", error);
-    const message = error.response?.data?.message || "Erreur lors de la recherche";
-    return { success: false, message };
-  }
+		// Fetch profile pictures for each user
+		const usersWithProfilePictures = await Promise.all(
+			users.map(async (user) => {
+				const profilePicture = await getUserProfilePicture(user.id);
+				return {
+					...user,
+					avatar: profilePicture,
+				};
+			})
+		);
+
+		return usersWithProfilePictures;
+	} catch (error) {
+		console.error("Error fetching users:", error);
+		return [];
+	}
 };
-// Uploader une photo de profil (alias pour updateUserAvatar)
-export const uploadProfilePicture = async (userId, file) => {
-    return updateUserAvatar(userId, file);
-  };
-  // Uploader une photo de profil (alias pour updateUserAvatar)
+// Function to upload a profile picture to the database
+export const uploadProfilePicture = async (userId, imageFile) => {
+	try {
+		// In a real app, you would upload the file to your server/cloud storage
+		// Example with FormData:
+		// const formData = new FormData();
+		// formData.append('profilePicture', imageFile);
+		// const response = await fetch(`/api/users/${userId}/profile-picture`, {
+		//   method: 'POST',
+		//   body: formData
+		// });
+		// const data = await response.json();
+		// return data.imageUrl;
+
+		// For now, we'll convert it to a data URL and store in localStorage
+		return new Promise((resolve) => {
+			const reader = new FileReader();
+			reader.onloadend = () => {
+				const imageUrl = reader.result;
+				// Store in localStorage as a cache
+				localStorage.setItem(`profile_picture_${userId}`, imageUrl);
+				resolve(imageUrl);
+			};
+			reader.readAsDataURL(imageFile);
+		});
+	} catch (error) {
+		console.error("Error uploading profile picture:", error);
+		throw new Error("Failed to upload profile picture");
+	}
+};
+// Function to fetch user profile picture from the database
+export const getUserProfilePicture = async (userId) => {
+	try {
+		// In a real app, you would fetch the profile picture from your API
+		// Example: const response = await fetch(`/api/users/${userId}/profile-picture`);
+
+		// For now, we'll simulate fetching from localStorage or a mock database
+		const mockDatabase = {
+			1: "/placeholder.svg?height=40&width=40", // Replace with actual image URLs in your implementation
+			2: "/placeholder.svg?height=40&width=40",
+			3: "/placeholder.svg?height=40&width=40",
+			4: "/placeholder.svg?height=40&width=40",
+			5: "/placeholder.svg?height=40&width=40",
+		};
+
+		// Check if we have a cached profile picture in localStorage
+		const cachedPicture = localStorage.getItem(`profile_picture_${userId}`);
+		if (cachedPicture) {
+			return cachedPicture;
+		}
+
+		// Otherwise return from our mock database
+		return mockDatabase[userId] || null;
+	} catch (error) {
+		console.error("Error fetching profile picture:", error);
+		return null;
+	}
+};
