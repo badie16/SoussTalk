@@ -35,7 +35,9 @@
 - Mise en cache des messages
 - File d'attente pour les messages à envoyer
 - Synchronisation automatique lors de la reconnexion
-  **Optimisation des performances**
+
+**Optimisation des performances**
+
 - Chargement paresseux (lazy loading) des messages
 - Compression des images avant envoi
 - Mise en cache des avatars et médias
