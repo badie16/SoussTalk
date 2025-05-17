@@ -86,9 +86,9 @@ const Stories = () => {
 		<main className="flex h-screen bg-gray-100 dark:bg-gray-900  themed-page overflow-hidden">
 			{/* Barre latérale de navigation */}
 			<SideNav activeIcon={activeIcon} onIconClick={handleIconClick} />
-      
+
 			<div className="flex flex-1 ml-[60px]">
-				<div className="w-full max-w-5xl mx-auto px-4 py-6">
+				<div className="w-full mx-auto px-4 py-6">
 					<div className="bg-gray-800 rounded-lg shadow p-4 mb-4">
 						<h1 className="text-2xl font-bold">Status</h1>
 
