@@ -20,3 +20,12 @@ exports.getActiveStories = async () => {
   if (error) throw new Error(error.message);
   return data;
 };
+exports.deleteStory = async (storyId) => {
+  const { error } = await supabase
+    .from('stories')
+    .delete()
+    .eq('id', storyId);
+
+  if (error) throw new Error(error.message);
+  return { message: "Story deleted successfully" };
+};
