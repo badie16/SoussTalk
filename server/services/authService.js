@@ -2,6 +2,17 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const supabase = require("../config/supabase");
 
+// Fonction pour générer un token JWT
+const generateToken = (userId) => {
+	return jwt.sign(
+		{ id: userId },
+		process.env.JWT_SECRET || "votre_secret_par_defaut",
+		{
+			expiresIn: "7d", // Augmenter la durée de validité du token
+		}
+	);
+};
+
 const signup = async (userData, profilePicture) => {
 	const {
 		username,
@@ -135,9 +146,7 @@ const signup = async (userData, profilePicture) => {
 		throw insertError;
 	}
 	// Generate JWT token
-	const token = jwt.sign({ id: uuid }, process.env.JWT_SECRET, {
-		expiresIn: "1h",
-	});
+	const token = generateToken(uuid);
 
 	return { token, user: data[0] };
 };
@@ -175,10 +184,12 @@ const login = async ({ email, password }) => {
 	}
 
 	// Génération du token JWT
-	const token = jwt.sign({ id: user.id }, process.env.JWT_SECRET, {
-		expiresIn: "1h",
-	});
+	const token = generateToken(user.id);
+
+	// Ajouter un log pour vérifier le token généré
+	console.log("Token généré lors du login:", token);
+
 	return { token, user };
 };
 
-module.exports = { signup, login };
+module.exports = { signup, login, generateToken };
