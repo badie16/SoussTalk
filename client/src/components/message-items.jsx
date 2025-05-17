@@ -6,17 +6,6 @@ const MessageItem = ({ message, isOwn }) => {
 
   return (
     <div className={`flex mb-4 ${isOwn ? "justify-end" : "justify-start"}`}>
-      {/* If not own message, show the avatar on the left */}
-      {!isOwn && (
-        <div className="flex-shrink-0 mr-3">
-          <img
-            src={message.sender.avatar || "/placeholder.svg?height=40&width=40"}
-            alt={message.sender.name}
-            className="w-10 h-10 rounded-full object-cover"
-          />
-        </div>
-      )}
-
       <div className={`flex flex-col ${isOwn ? "items-end" : "items-start"} max-w-[70%]`}>
         {/* Sender name - only show for others' messages */}
         {!isOwn && <span className="text-xs text-gray-500 mb-1 font-medium">{message.sender.name}</span>}
@@ -53,16 +42,7 @@ const MessageItem = ({ message, isOwn }) => {
         </div>
       </div>
 
-      {/* If own message, show the avatar on the right */}
-      {isOwn && (
-        <div className="flex-shrink-0 ml-3">
-          <img
-            src={message.sender.avatar || "/placeholder.svg?height=40&width=40"}
-            alt={message.sender.name}
-            className="w-10 h-10 rounded-full object-cover"
-          />
-        </div>
-      )}
+     
     </div>
   )
 }

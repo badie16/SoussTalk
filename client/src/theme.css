@@ -1,96 +1,69 @@
-/* Fichier de styles pour les thèmes */
-
-/* Variables CSS pour les thèmes */
+/* Styles de base pour les thèmes */
 :root {
-  /* Thème par défaut (light) */
-  --background-primary: #ffffff;
-  --background-secondary: #f3f4f6;
-  --text-primary: #1f2937;
+  --primary-color: #10b981;
+  --primary-hover: #059669;
+  --text-primary: #111827;
   --text-secondary: #4b5563;
+  --bg-primary: #ffffff;
+  --bg-secondary: #f3f4f6;
   --border-color: #e5e7eb;
-  --accent-color: #22c55e;
-  --accent-color-hover: #16a34a;
-  --accent-color-light: #dcfce7;
-
-  /* Transition pour les changements de thème */
-  --theme-transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+  --shadow-color: rgba(0, 0, 0, 0.1);
 }
 
-/* Mode sombre */
+/* Thème sombre */
 .dark {
-  --background-primary: #1a1a1a;
-  --background-secondary: #2a2a2a;
-  --text-primary: #f3f4f6;
-  --text-secondary: #9ca3af;
+  --primary-color: #10b981;
+  --primary-hover: #34d399;
+  --text-primary: #f9fafb;
+  --text-secondary: #d1d5db;
+  --bg-primary: #1f2937;
+  --bg-secondary: #111827;
   --border-color: #374151;
-  --accent-color: #22c55e;
-  --accent-color-hover: #16a34a;
-  --accent-color-light: #132e1f;
+  --shadow-color: rgba(0, 0, 0, 0.3);
 }
 
-/* Appliquer les transitions */
-body,
-button,
-input,
-textarea,
-select,
-div,
-a {
-  transition: var(--theme-transition);
+/* Appliquer les variables de couleur aux éléments */
+.theme-light,
+.theme-dark {
+  color: var(--text-primary);
+  background-color: var(--bg-primary);
 }
 
-/* Classes utilitaires pour les composants */
-.bg-primary {
-  background-color: var(--background-primary);
+/* Styles pour les éléments communs */
+.themed-page {
+  min-height: 100vh;
+  transition: background-color 0.3s, color 0.3s;
 }
 
-.bg-secondary {
-  background-color: var(--background-secondary);
+/* Styles pour les cartes et conteneurs */
+.themed-card {
+  background-color: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  box-shadow: 0 4px 6px var(--shadow-color);
 }
 
-.text-primary {
+/* Styles pour les boutons */
+.themed-button {
+  background-color: var(--primary-color);
+  color: white;
+}
+
+.themed-button:hover {
+  background-color: var(--primary-hover);
+}
+
+/* Styles pour les entrées */
+.themed-input {
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-color);
   color: var(--text-primary);
 }
 
-.text-secondary {
+/* Styles pour les textes */
+.themed-text-primary {
+  color: var(--text-primary);
+}
+
+.themed-text-secondary {
   color: var(--text-secondary);
-}
-
-.border-theme {
-  border-color: var(--border-color);
-}
-
-.accent-bg {
-  background-color: var(--accent-color);
-}
-
-.accent-text {
-  color: var(--accent-color);
-}
-
-.accent-border {
-  border-color: var(--accent-color);
-}
-
-.accent-bg-light {
-  background-color: var(--accent-color-light);
-}
-
-/* Animation de transition de thème */
-.theme-transition-enter {
-  opacity: 0;
-}
-
-.theme-transition-enter-active {
-  opacity: 1;
-  transition: opacity 300ms;
-}
-
-.theme-transition-exit {
-  opacity: 1;
-}
-
-.theme-transition-exit-active {
-  opacity: 0;
-  transition: opacity 300ms;
 }
