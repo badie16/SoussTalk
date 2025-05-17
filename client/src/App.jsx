@@ -11,7 +11,8 @@ import Stories from "./pages/story";
 import Contacts from "./pages/contact";
 import AddStory from "./components/addStory";
 import { ThemeProvider } from "./context/ThemeContext";
-
+import StoryViewer from "./pages/storyViewer";
+import StoryForm from "./pages/StoryForm";
 export default function App() {
 	const location = useLocation();
 	const isAuthPage =
@@ -58,6 +59,23 @@ export default function App() {
 					</ProtectedRoute>
 				)}
 			/>
+			<Route
+				path="/storyViewer"
+				element={renderWithTheme(
+					<ProtectedRoute>
+						<StoryViewer />
+					</ProtectedRoute>
+				)}
+			/>
+			<Route
+				path="/StoryForm"
+				element={renderWithTheme(
+					<ProtectedRoute>
+						<StoryForm/>
+					</ProtectedRoute>
+				)}
+			/>
+
 
 			<Route
 				path="/connection-error"

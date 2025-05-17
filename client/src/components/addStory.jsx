@@ -1,50 +1,80 @@
-// components/AddStory.jsx
-import React, { useState } from "react";
-import { postStory } from "../services/storyService";
-import { useNavigate } from "react-router-dom";
+import React, { useState, useRef } from 'react';
+import { createStory, uploadMedia } from '../services/storyService';
+import { useNavigate } from 'react-router-dom';
 
 const AddStory = () => {
-  const [mediaUrl, setMediaUrl] = useState("");
-  const [caption, setCaption] = useState("");
+  const [file, setFile] = useState(null);
+  const [caption, setCaption] = useState('');
+  const [preview, setPreview] = useState(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef(null);
   const navigate = useNavigate();
+
+  const handleFileChange = (e) => {
+    const selectedFile = e.target.files[0];
+    if (selectedFile) {
+      setFile(selectedFile);
+      setPreview(URL.createObjectURL(selectedFile));
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setIsUploading(true);
+    
     try {
-      await postStory({
-        user_id: 1, // à adapter selon l'authentification réelle
-        media_url: mediaUrl,
+      let mediaData = null;
+      
+      if (file) {
+        mediaData = await uploadMedia(file);
+      }
+
+      await createStory({
+        user_id: 1, // À remplacer par l'ID utilisateur réel
+        media_url: mediaData?.url || '',
+        type: mediaData?.type || 'text',
         caption,
       });
-      navigate("/stories");
-    } catch (err) {
-      console.error("Erreur lors de l'ajout de la story:", err);
+      
+      navigate('/stories');
+    } catch (error) {
+      console.error('Error:', error.message);
+      alert(error.message);
+    } finally {
+      setIsUploading(false);
     }
   };
 
   return (
     <div className="p-6 max-w-lg mx-auto">
-      <h2 className="text-2xl font-bold mb-4">Ajouter une Story</h2>
+      <h2 className="text-2xl font-bold mb-4">Add Story</h2>
       <form onSubmit={handleSubmit} className="space-y-4">
         <input
-          type="text"
-          placeholder="URL de l'image"
-          value={mediaUrl}
-          onChange={(e) => setMediaUrl(e.target.value)}
+          type="file"
+          ref={fileInputRef}
+          onChange={handleFileChange}
+          accept="image/*,video/*"
           className="w-full border rounded-xl p-2"
-          required
         />
+        {preview && (
+          file.type.startsWith('video') ? (
+            <video src={preview} controls className="w-full max-h-64 rounded" />
+          ) : (
+            <img src={preview} alt="Preview" className="w-full max-h-64 object-contain rounded" />
+          )
+        )}
         <textarea
-          placeholder="Caption (optionnel)"
+          placeholder="Caption (optional)"
           value={caption}
           onChange={(e) => setCaption(e.target.value)}
           className="w-full border rounded-xl p-2"
-        ></textarea>
+        />
         <button
           type="submit"
-          className="bg-green-600 text-white px-4 py-2 rounded-xl"
+          disabled={isUploading}
+          className="bg-blue-600 text-white px-4 py-2 rounded-xl disabled:opacity-50"
         >
-          Publier
+          {isUploading ? 'Posting...' : 'Post Story'}
         </button>
       </form>
     </div>
