@@ -40,9 +40,9 @@ const SideNav = ({ activeIcon, onIconClick }) => {
 			{/* Icônes de navigation */}
 			<div className="flex flex-col items-center space-y-8 flex-1">
 				<NavIcon
-					icon="user"
-					active={activeIcon === "user"}
-					onClick={() => onIconClick && onIconClick("user")}
+					icon="story"
+					active={activeIcon === "story"}
+					onClick={() => onIconClick && onIconClick("story")}
 					to="/story"
 				/>
 				<NavIcon
@@ -162,6 +162,18 @@ const NavIcon = ({ icon, active, onClick, to }) => {
 						<path d={d}></path>
 					</>
 				);
+			case "story":
+				return (
+					<>
+						<circle cx="7" cy="7" r="4"></circle>
+						<path d="M15 11a5 5 0 1 0 3.07 9.11"></path>
+						<path d="M15 11a5 5 0 0 1 5 5"></path>
+						<circle cx="20" cy="16" r="2"></circle>
+						<path d="M23 19l-3-3"></path>
+						<path d="M3 21v-2a4 4 0 0 1 4-4h4"></path>
+					</>
+				);
+
 			default:
 				return null;
 		}

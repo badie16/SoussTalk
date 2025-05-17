@@ -15,7 +15,7 @@ const Stories = () => {
 	const [activeTab, setActiveTab] = useState("media");
 	const fileInputRef = useRef(null);
 	const [loading, setLoading] = useState(false);
-	const [activeIcon, setActiveIcon] = useState("users");
+	const [activeIcon, setActiveIcon] = useState("story");
 
 	useEffect(() => {
 		fetchStories();
