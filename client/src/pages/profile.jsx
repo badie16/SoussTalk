@@ -1195,7 +1195,7 @@ const Profile = () => {
 	};
 
 	return (
-		<div className="min-h-screen bg-gray-100 dark:bg-gray-900">
+		<div className="min-h-screen bg-gray-100 dark:bg-gray-900  themed-page">
 			{/* Top Navigation */}
 			<div className="bg-white dark:bg-gray-800 shadow-sm">
 				<div className="max-w-3xl mx-auto px-4 py-3 flex items-center">

@@ -17,7 +17,7 @@ export default function NotFound() {
 	}, []);
 
 	return (
-		<div className="min-h-screen bg-gradient-to-br from-green-400 to-green-600 flex items-center justify-center p-4">
+		<div className="min-h-screen bg-gradient-to-br from-green-400 to-green-600 flex items-center justify-center p-4 themed-page">
 			<div className="bg-white rounded-2xl shadow-xl p-8 max-w-md w-full">
 				<div className="flex flex-col items-center text-center">
 					{/* Animation du numéro 404 */}
