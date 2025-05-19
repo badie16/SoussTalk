@@ -52,6 +52,7 @@ export const getActiveStories = async () => {
 				Authorization: `Bearer ${token}`,
 			},
 		});
+    console.log(response.data);
 		return { success: true, data: response.data };
 	} catch (error) {
 		console.error("Erreur récupération stories :", error);

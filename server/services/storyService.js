@@ -1,3 +1,4 @@
+const { Console } = require("console");
 const supabase = require("../config/supabase");
 
 exports.createStory = async (
@@ -51,7 +52,7 @@ exports.getFriendsStories = async (userId) => {
 		friendIds.push(userId);
 		// 3. Si aucun ami, retourner un tableau vide
 		if (friendIds.length === 0) return [];
-		
+
 		// 4. Récupérer les stories actives des amis
 		const { data: stories, error: storiesError } = await supabase
 			.from("stories")
@@ -103,6 +104,7 @@ exports.getStoryById = async (storyId) => {
 };
 
 exports.markStoryAsViewed = async (storyId, userId) => {
+	console.log("fffffffffff");
 	// Vérifier si la vue existe déjà
 	const { data: existingView, error: checkError } = await supabase
 		.from("story_views")
@@ -132,7 +134,6 @@ exports.getViewedStories = async (userId) => {
 		.from("story_views")
 		.select("story_id")
 		.eq("user_id", userId);
-
 	if (error) throw new Error(error.message);
 
 	const storyIds = data.map((view) => view.story_id);
@@ -160,45 +161,45 @@ exports.deleteStory = async (storyId) => {
 };
 // Réagir à une story
 exports.reactToStory = async (storyId, userId, reaction) => {
-  // Vérifier si une réaction existe déjà
-  const { data: existingReaction, error: checkError } = await supabase
-    .from("story_reactions")
-    .select("*")
-    .eq("story_id", storyId)
-    .eq("user_id", userId)
-    .single()
+	// Vérifier si une réaction existe déjà
+	const { data: existingReaction, error: checkError } = await supabase
+		.from("story_reactions")
+		.select("*")
+		.eq("story_id", storyId)
+		.eq("user_id", userId)
+		.single();
 
-  if (checkError && checkError.code !== "PGRST116") {
-    throw new Error(checkError.message)
-  }
+	if (checkError && checkError.code !== "PGRST116") {
+		throw new Error(checkError.message);
+	}
 
-  // Si une réaction existe, la mettre à jour, sinon en créer une nouvelle
-  if (existingReaction) {
-    const { error: updateError } = await supabase
-      .from("story_reactions")
-      .update({ reaction, updated_at: new Date().toISOString() })
-      .eq("id", existingReaction.id)
+	// Si une réaction existe, la mettre à jour, sinon en créer une nouvelle
+	if (existingReaction) {
+		const { error: updateError } = await supabase
+			.from("story_reactions")
+			.update({ reaction, updated_at: new Date().toISOString() })
+			.eq("id", existingReaction.id);
 
-    if (updateError) throw new Error(updateError.message)
-  } else {
-    const { error: insertError } = await supabase
-      .from("story_reactions")
-      .insert([{ story_id: storyId, user_id: userId, reaction }])
+		if (updateError) throw new Error(updateError.message);
+	} else {
+		const { error: insertError } = await supabase
+			.from("story_reactions")
+			.insert([{ story_id: storyId, user_id: userId, reaction }]);
 
-    if (insertError) throw new Error(insertError.message)
-  }
+		if (insertError) throw new Error(insertError.message);
+	}
 
-  return { success: true }
-}
+	return { success: true };
+};
 
 // Répondre à une story
 exports.replyToStory = async (storyId, userId, message) => {
-  const { data, error } = await supabase
-    .from("story_replies")
-    .insert([{ story_id: storyId, user_id: userId, message }])
-    .select()
-    .single()
+	const { data, error } = await supabase
+		.from("story_replies")
+		.insert([{ story_id: storyId, user_id: userId, message }])
+		.select()
+		.single();
 
-  if (error) throw new Error(error.message)
-  return data
-}
+	if (error) throw new Error(error.message);
+	return data;
+};

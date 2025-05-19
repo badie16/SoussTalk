@@ -25,7 +25,7 @@ app.use("/api/friends", friendRoutes);
 app.use("/api/users/sessions", sessionRoutes);
 
 //Importation des routes de story
-app.use('/api/stories', storyRoutes);
+app.use("/api/stories", storyRoutes);
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));

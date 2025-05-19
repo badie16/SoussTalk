@@ -105,17 +105,17 @@ exports.markStoryAsViewed = async (req, res) => {
 	try {
 		const storyId = req.params.id;
 		const userId = req.user.id; // Récupéré du middleware d'authentification
-
+    console.log(storyId,userId)
 		// Vérifier si l'utilisateur est autorisé à voir cette story
-		const story = await storyService.getStoryById(storyId);
-		const isFriend = await storyService.checkFriendship(userId, story.user_id);
+		// const story = await storyService.getStoryById(storyId);
+		// const isFriend = await storyService.checkFriendship(userId, story.user_id);
 
-		if (userId !== story.user_id && !isFriend) {
-			return res
-				.status(403)
-				.json({ error: "Vous n'êtes pas autorisé à voir cette story" });
-		}
-
+		// if (userId !== story.user_id && !isFriend) {
+		// 	return res
+		// 		.status(403)
+		// 		.json({ error: "Vous n'êtes pas autorisé à voir cette story" });
+		// }
+    console.log("ssss")
 		const result = await storyService.markStoryAsViewed(storyId, userId);
 		res.json(result);
 	} catch (error) {
