@@ -10,6 +10,7 @@ import Profile from "./pages/profile";
 import Contacts from "./pages/contact";
 import FindFriends from "./pages/find-friends";
 import { ThemeProvider } from "./context/ThemeContext";
+import Calls from "./pages/calls";
 
 export default function App() {
 	const location = useLocation();
@@ -60,6 +61,14 @@ export default function App() {
 			<Route
 				path="/connection-error"
 				element={renderWithTheme(<ConnectionError />)}
+			/>
+			<Route
+				path="/calls"
+				element={renderWithTheme(
+					<ProtectedRoute>
+						<Calls />
+					</ProtectedRoute>
+				)}
 			/>
 			<Route path="/" element={<Navigate to="/login" replace />} />
 			<Route path="*" element={renderWithTheme(<NotFound />)} />

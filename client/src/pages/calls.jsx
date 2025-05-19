@@ -4,25 +4,38 @@ import { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
 import { Search } from "lucide-react"
 import "../index.css"
-import { fetchUsers } from "../services/userService"
-import { initiateCall } from "../services/callService"
+import { initiateCall, getCallHistory } from "../services/callService"
 import CallModal from "../components/call-modal"
 import SideNav from "../components/SideNav"
 
-const Contacts = () => {
+const Calls = () => {
   const navigate = useNavigate()
-  const [contacts, setContacts] = useState([])
   const [searchQuery, setSearchQuery] = useState("")
   const [isLoading, setIsLoading] = useState(true)
-  const [activeIcon, setActiveIcon] = useState("users")
+  const [callHistory, setCallHistory] = useState([])
+  const [activeTab, setActiveTab] = useState("recent") // 'recent' or 'missed'
+  const [activeIcon, setActiveIcon] = useState("phone")
 
   // Call state
   const [showCallModal, setShowCallModal] = useState(false)
   const [currentCall, setCurrentCall] = useState(null)
 
-  // Check if user is logged in and load contacts
+  // Handle icon click
+  const handleIconClick = (iconName) => {
+    setActiveIcon(iconName)
+
+    if (iconName === "message-square") {
+      navigate("/chat")
+    } else if (iconName === "users") {
+      navigate("/contacts")
+    } else if (iconName === "user") {
+      navigate("/profile")
+    }
+  }
+
+  // Check if user is logged in and load call history
   useEffect(() => {
-    const loadUserAndContacts = async () => {
+    const loadUserData = async () => {
       setIsLoading(true)
 
       // Check for user authentication
@@ -33,9 +46,9 @@ const Contacts = () => {
       }
 
       try {
-        // Fetch contacts from database
-        const userContacts = await fetchUsers()
-        setContacts(userContacts)
+        // Get call history
+        const history = getCallHistory()
+        setCallHistory(history)
       } catch (error) {
         console.error("Error loading data:", error)
       } finally {
@@ -43,21 +56,8 @@ const Contacts = () => {
       }
     }
 
-    loadUserAndContacts()
+    loadUserData()
   }, [navigate])
-
-  // Handle icon click
-  const handleIconClick = (iconName) => {
-    setActiveIcon(iconName)
-
-    if (iconName === "message-square") {
-      navigate("/chat")
-    } else if (iconName === "phone") {
-      navigate("/calls")
-    } else if (iconName === "user") {
-      navigate("/profile")
-    }
-  }
 
   // Handle call initiation
   const handleCallContact = async (contact, callType = "audio") => {
@@ -79,15 +79,23 @@ const Contacts = () => {
   const handleCallEnd = (call) => {
     setShowCallModal(false)
     setCurrentCall(null)
+
+    // Refresh call history
+    setCallHistory(getCallHistory())
   }
 
-  // Filter contacts based on search query
-  const filteredContacts = contacts.filter(
-    (contact) =>
-      contact.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (contact.email && contact.email.toLowerCase().includes(searchQuery.toLowerCase())) ||
-      (contact.phone && contact.phone.toLowerCase().includes(searchQuery.toLowerCase())),
-  )
+  // Filter call history based on search query and active tab
+  const filteredCallHistory = callHistory.filter((call) => {
+    const matchesSearch = call.name.toLowerCase().includes(searchQuery.toLowerCase())
+
+    if (!matchesSearch) return false
+
+    if (activeTab === "missed") {
+      return call.missed
+    }
+
+    return true
+  })
 
   return (
     <div className="flex h-screen bg-[#1a2236]">
@@ -96,11 +104,11 @@ const Contacts = () => {
 
       {/* Main content */}
       <div className="flex flex-1 ml-[60px]">
-        {/* Contacts list */}
+        {/* Calls list */}
         <div className="w-[400px] bg-[#1a2550]">
           {/* Header */}
           <div className="flex justify-between items-center p-4">
-            <h1 className="text-xl font-semibold text-white">Contacts</h1>
+            <h1 className="text-xl font-semibold text-white">Calls</h1>
             <button className="w-10 h-10 flex items-center justify-center rounded-full bg-[#2a3447] text-gray-300">
               <svg
                 xmlns="http://www.w3.org/2000/svg"
@@ -120,11 +128,11 @@ const Contacts = () => {
           </div>
 
           {/* Search */}
-          <div className="px-4 pb-4">
+          <div className="px-4 pb-2">
             <div className="relative">
               <input
                 type="text"
-                placeholder="Search here.."
+                placeholder="Search calls..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full bg-[#2a3447] text-gray-200 rounded-md py-2 pl-4 pr-10 focus:outline-none"
@@ -133,26 +141,54 @@ const Contacts = () => {
             </div>
           </div>
 
-          {/* Contacts list */}
-          <div className="overflow-y-auto h-[calc(100vh-140px)]">
+          {/* Tabs */}
+          <div className="flex px-4 border-b border-[#2a3447]">
+            <button
+              className={`py-2 px-4 font-medium text-sm ${
+                activeTab === "recent"
+                  ? "text-green-500 border-b-2 border-green-500"
+                  : "text-gray-400 hover:text-gray-300"
+              }`}
+              onClick={() => setActiveTab("recent")}
+            >
+              Recent
+            </button>
+            <button
+              className={`py-2 px-4 font-medium text-sm ${
+                activeTab === "missed"
+                  ? "text-green-500 border-b-2 border-green-500"
+                  : "text-gray-400 hover:text-gray-300"
+              }`}
+              onClick={() => setActiveTab("missed")}
+            >
+              Missed
+            </button>
+          </div>
+
+          {/* Call History */}
+          <div className="overflow-y-auto h-[calc(100vh-180px)]">
             {isLoading ? (
               <div className="flex justify-center py-4">
                 <div className="w-6 h-6 border-2 border-green-500 border-t-transparent rounded-full animate-spin"></div>
               </div>
-            ) : filteredContacts.length > 0 ? (
-              filteredContacts.map((contact) => (
-                <ContactItem
-                  key={contact.id}
-                  contact={contact}
-                  onCall={() => handleCallContact(contact, "audio")}
-                  onVideoCall={() => handleCallContact(contact, "video")}
-                  onChat={() => navigate("/chat", { state: { selectedContact: contact } })}
+            ) : filteredCallHistory.length > 0 ? (
+              filteredCallHistory.map((call) => (
+                <CallHistoryItem
+                  key={call.id}
+                  call={call}
+                  onCall={() => handleCallContact({ ...call }, "audio")}
+                  onVideoCall={() => handleCallContact({ ...call }, "video")}
+                  onChat={() => navigate("/chat", { state: { selectedContact: call } })}
                 />
               ))
             ) : (
               <div className="text-center py-8">
                 <p className="text-gray-400">
-                  {searchQuery ? `No contacts found for "${searchQuery}"` : "No contacts available"}
+                  {searchQuery
+                    ? `No calls found for "${searchQuery}"`
+                    : activeTab === "missed"
+                      ? "No missed calls"
+                      : "No recent calls"}
                 </p>
               </div>
             )}
@@ -182,7 +218,7 @@ const Contacts = () => {
             <h1 className="text-2xl font-semibold text-gray-200 mb-4">Welcome to SoussTalk Chat App</h1>
 
             <p className="text-gray-400 mb-8">
-              Select a contact from the sidebar or start a new conversation to begin messaging.
+              Select a chat from the sidebar or start a new conversation to begin messaging.
             </p>
 
             <button
@@ -201,44 +237,55 @@ const Contacts = () => {
   )
 }
 
-// Contact Item Component
-function ContactItem({ contact, onCall, onVideoCall, onChat }) {
+// Call History Item Component
+const CallHistoryItem = ({ call, onCall, onVideoCall, onChat }) => {
   return (
-    <div className="flex items-center justify-between px-4 py-3 hover:bg-[#2a3447] border-b border-[#2a3447] last:border-b-0">
-      {/* User avatar and info */}
+    <div className="flex items-center justify-between px-4 py-3 hover:bg-[#2a3447]">
+      {/* User avatar */}
       <div className="flex items-center flex-1">
         <div className="relative mr-3">
-          {contact.avatar ? (
+          {call.avatar ? (
             <img
-              src={contact.avatar || "/placeholder.svg"}
-              alt={contact.name}
+              src={call.avatar || "/placeholder.svg"}
+              alt={call.name}
               className="h-10 w-10 rounded-full object-cover"
             />
           ) : (
             <div className="h-10 w-10 rounded-full bg-gray-700 flex items-center justify-center text-white">
-              <span className="font-medium">{contact.initials}</span>
+              <span className="font-medium">{call.initials}</span>
             </div>
           )}
-          {contact.online && <span className="absolute bottom-0 left-0 block h-2.5 w-2.5 rounded-full bg-green-500" />}
         </div>
         <div>
-          <p className="text-sm font-medium text-white">{contact.name}</p>
-          <p className="text-xs text-gray-400">No contact info</p>
+          <p className="text-sm font-medium text-white">{call.name}</p>
+          <div className="flex items-center">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="text-blue-400 mr-1"
+            >
+              <polyline points="9 10 4 15 9 20"></polyline>
+              <path d="M20 4v7a4 4 0 0 1-4 4H4"></path>
+            </svg>
+            <span className="text-xs text-gray-400">
+              {call.timestamp} • {call.duration || "00:00"}
+            </span>
+          </div>
         </div>
       </div>
-
-      {/* Status indicator for online contacts */}
-      {contact.online && (
-        <div className="mr-4">
-          <span className="text-xs text-green-500">Online</span>
-        </div>
-      )}
 
       {/* Action buttons */}
       <div className="flex space-x-2">
         <button
           onClick={onCall}
-          className="w-8 h-8 flex items-center justify-center rounded-full bg-[#2a3447] text-gray-300 hover:bg-[#3a4457]"
+          className="w-8 h-8 flex items-center justify-center rounded-full bg-[#2a3447] text-gray-300"
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -256,7 +303,7 @@ function ContactItem({ contact, onCall, onVideoCall, onChat }) {
         </button>
         <button
           onClick={onVideoCall}
-          className="w-8 h-8 flex items-center justify-center rounded-full bg-[#2a3447] text-gray-300 hover:bg-[#3a4457]"
+          className="w-8 h-8 flex items-center justify-center rounded-full bg-[#2a3447] text-gray-300"
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -275,7 +322,7 @@ function ContactItem({ contact, onCall, onVideoCall, onChat }) {
         </button>
         <button
           onClick={onChat}
-          className="w-8 h-8 flex items-center justify-center rounded-full bg-green-600 text-white hover:bg-green-700"
+          className="w-8 h-8 flex items-center justify-center rounded-full bg-green-600 text-white"
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -288,7 +335,7 @@ function ContactItem({ contact, onCall, onVideoCall, onChat }) {
             strokeLinecap="round"
             strokeLinejoin="round"
           >
-            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+            <path d="M9 18l6-6-6-6"></path>
           </svg>
         </button>
       </div>
@@ -296,4 +343,4 @@ function ContactItem({ contact, onCall, onVideoCall, onChat }) {
   )
 }
 
-export default Contacts
+export default Calls
