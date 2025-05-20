@@ -337,7 +337,7 @@ const Stories = () => {
 										{myStory && myStory.type === "photo" ? (
 											<img
 												src={
-													myStory.media_url ||
+													myStory.media_url  || 
 													"/placeholder.svg?height=48&width=48"
 												}
 												alt="Ma story"
@@ -348,7 +348,7 @@ const Stories = () => {
 										)}
 									</div>
 									<div className="absolute bottom-0 right-0 bg-green-500 rounded-full p-1 shadow-lg">
-										<Plus size={12} className="text-white" />
+										<Plus size={12} className="text-white z-10" />
 									</div>
 								</div>
 								<div>

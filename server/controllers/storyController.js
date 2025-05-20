@@ -2,18 +2,14 @@ const storyService = require("../services/storyService");
 
 exports.createStory = async (req, res) => {
 	try {
-		const { user_id, media_url, type, caption, background } = req.body;
-
+		const { user_id, media_url, type, caption, background } = req.body;		
 		// Vérifier que l'utilisateur authentifié est bien celui qui crée la story
 		if (req.user.id !== user_id) {
-			return res
-				.status(403)
-				.json({
-					error:
-						"Vous n'êtes pas autorisé à créer une story pour un autre utilisateur",
-				});
-		}
-
+			return res.status(403).json({
+				error:
+					"Vous n'êtes pas autorisé à créer une story pour un autre utilisateur",
+			});
+		}		
 		const story = await storyService.createStory(
 			user_id,
 			media_url,
@@ -58,16 +54,13 @@ exports.getUserStories = async (req, res) => {
 		const userId = req.params.userId;
 
 		// Vérifier si l'utilisateur demande ses propres stories ou s'il est ami avec l'utilisateur demandé
-		const isSelf = req.user.id === Number(userId);
+		const isSelf = req.user.id == userId;
 		const isFriend = await storyService.checkFriendship(req.user.id, userId);
 
 		if (!isSelf && !isFriend) {
-			return res
-				.status(403)
-				.json({
-					error:
-						"Vous n'êtes pas autorisé à voir les stories de cet utilisateur",
-				});
+			return res.status(403).json({
+				error: "Vous n'êtes pas autorisé à voir les stories de cet utilisateur",
+			});
 		}
 
 		const stories = await storyService.getUserStories(userId);
@@ -105,7 +98,7 @@ exports.markStoryAsViewed = async (req, res) => {
 	try {
 		const storyId = req.params.id;
 		const userId = req.user.id; // Récupéré du middleware d'authentification
-    console.log(storyId,userId)
+		console.log(storyId, userId);
 		// Vérifier si l'utilisateur est autorisé à voir cette story
 		// const story = await storyService.getStoryById(storyId);
 		// const isFriend = await storyService.checkFriendship(userId, story.user_id);
@@ -115,7 +108,6 @@ exports.markStoryAsViewed = async (req, res) => {
 		// 		.status(403)
 		// 		.json({ error: "Vous n'êtes pas autorisé à voir cette story" });
 		// }
-    console.log("ssss")
 		const result = await storyService.markStoryAsViewed(storyId, userId);
 		res.json(result);
 	} catch (error) {
@@ -124,11 +116,14 @@ exports.markStoryAsViewed = async (req, res) => {
 };
 
 exports.getViewedStories = async (req, res) => {
+	console.log("ddd")
 	try {
 		const userId = req.user.id; // Récupéré du middleware d'authentification
+		
 		const stories = await storyService.getViewedStories(userId);
 		res.json(stories);
 	} catch (error) {
+		console.log(error);
 		res.status(500).json({ error: error.message });
 	}
 };
