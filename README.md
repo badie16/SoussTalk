@@ -78,11 +78,11 @@ src/
 ## 🧑‍💻 Development Team  
 > Students from **École Nationale Supérieure de l'Intelligence Artificielle et des Sciences des Données – ENSIASD**  
 
-- Badie  
-- Khaoula  
-- Said  
-- Youssef  
-- Douae  
+- Badie    => leader, fullstack 
+- Khaoula  => frontend
+- Douae    => backend
+- Said     => frontend
+- Youssef  => backend
 
 ---  
 

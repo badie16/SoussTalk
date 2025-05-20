@@ -1,13 +1,20 @@
 const express = require("express");
 const cors = require("cors");
+
 const http = require("http");
 const { Server } = require("socket.io");
 require("dotenv").config();
 
 const supabase = require("./config/supabase");
-const authRoutes = require("./routes/authRoutes");
 const messageRoutes = require("./routes/messageRoutes");
 const { setupMessageSocket } = require("./sockets/messageSocket");
+
+const authRoutes = require("./routes/authRoutes");
+const userRoutes = require("./routes/userRoutes");
+const sessionRoutes = require("./routes/sessionRoutes");
+const storyRoutes = require("./routes/storyRoute");
+const friendRoutes = require("./routes/friendRoutes");
+// require("dotenv").config();
 
 const app = express();
 const server = http.createServer(app);
@@ -60,6 +67,17 @@ io.on("connection", (socket) => {
     console.log(`Utilisateur déconnecté: ${socket.user.id}`);
   });
 });
+
+// Routes utilisateur
+app.use("/api/users", userRoutes);
+
+// Routes friend
+app.use("/api/friends", friendRoutes);
+// Importer les routes de session
+app.use("/api/users/sessions", sessionRoutes);
+
+//Importation des routes de story
+app.use("/api/stories", storyRoutes);
 
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => {
