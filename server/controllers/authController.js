@@ -1,6 +1,7 @@
 const e = require("express");
 const authService = require("../services/authService");
 
+
 const signup = async (req, res) => {
 	console.log(req.body)
 	try {
