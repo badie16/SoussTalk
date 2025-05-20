@@ -266,7 +266,7 @@ const Stories = () => {
 				await markStoryAsViewed(story.id);
 				// Mettre à jour la liste des stories vues
 				setViewedStoryIds((prev) => [...prev, story.id]);
-				
+
 				// Mettre à jour les états des stories immédiatement
 				setRecentStories((prev) => {
 					const updatedRecent = prev.filter(
@@ -373,29 +373,28 @@ const Stories = () => {
 						{isLoading ? (
 							<>
 								{/* Skeleton pour My Status */}
-								
+
 								<div className="mb-7 mt-6 ml-3 ">
 									<SkeletonProfile />
-								</div>						
+								</div>
 								{/* Skeleton pour les stories des autres personnes */}
-								
+
 								<h2 className="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase mb-2 px-3">
 									Recent updates
-								</h2>							
+								</h2>
 								<div className="mb-6 mt-6 ml-3">
 									<SkeletonProfile />
-								</div>	
+								</div>
 								<div className="mb-6 mt-6 ml-3">
 									<SkeletonProfile />
-								</div>							
+								</div>
 								{/* Skeleton pour les stories vues */}
-								
-														</>
+							</>
 						) : (
 							<>
 								{/* Ma story */}
 								<div className="mb-6">
-									<div 
+									<div
 										className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-800 cursor-pointer"
 										onClick={() => {
 											if (myStory) {
@@ -411,7 +410,10 @@ const Stories = () => {
 												<div className="w-12 h-12 rounded-full bg-gray-300 dark:bg-gray-700 overflow-hidden">
 													{myStory.type === "photo" ? (
 														<img
-															src={myStory.media_url || "/placeholder.svg?height=48&width=48"}
+															src={
+																myStory.media_url ||
+																"/placeholder.svg?height=48&width=48"
+															}
 															alt="Ma story"
 															className="w-full h-full object-cover"
 														/>
@@ -425,9 +427,7 @@ const Stories = () => {
 												</div>
 											)}
 											{!myStory && (
-												<button
-													className="absolute bottom-0 right-0 bg-green-500 rounded-full p-1 shadow-lg cursor-pointer hover:bg-green-600 transition-colors"
-												>
+												<button className="absolute bottom-0 right-0 bg-green-500 rounded-full p-1 shadow-lg cursor-pointer hover:bg-green-600 transition-colors">
 													<Plus size={12} className="text-white" />
 												</button>
 											)}
@@ -437,7 +437,9 @@ const Stories = () => {
 												My status
 											</p>
 											<p className="text-xs text-gray-500 dark:text-gray-400">
-												{myStory ? formatTime(myStory.created_at) : "No updates"}
+												{myStory
+													? formatTime(myStory.created_at)
+													: "No updates"}
 											</p>
 										</div>
 									</div>
@@ -487,7 +489,9 @@ const Stories = () => {
 													</p>
 													<div className="flex items-center">
 														<p className="text-xs text-gray-500 dark:text-gray-400">
-															{formatTime(userStoryGroup.latestStory.created_at)}
+															{formatTime(
+																userStoryGroup.latestStory.created_at
+															)}
 														</p>
 														{userStoryGroup.stories.length > 1 && (
 															<span className="ml-2 text-xs bg-gray-200 dark:bg-gray-700 px-1.5 py-0.5 rounded-full">
@@ -545,7 +549,9 @@ const Stories = () => {
 													</p>
 													<div className="flex items-center">
 														<p className="text-xs text-gray-500 dark:text-gray-400">
-															{formatTime(userStoryGroup.latestStory.created_at)}
+															{formatTime(
+																userStoryGroup.latestStory.created_at
+															)}
 														</p>
 														{userStoryGroup.stories.length > 1 && (
 															<span className="ml-2 text-xs bg-gray-200 dark:bg-gray-700 px-1.5 py-0.5 rounded-full">
@@ -654,9 +660,23 @@ const Stories = () => {
 										? "text-green-600 border-b-2 border-green-600"
 										: "text-gray-600 dark:text-gray-400"
 								}`}
+								onClick={() => setActiveTab("media")}
 							>
-								<Camera size={16} className={activeTab === "media" ? "" : "text-gray-400 dark:text-gray-600"} />
-								Media
+								<svg
+									xmlns="http://www.w3.org/2000/svg"
+									className="h-5 w-5"
+									fill="none"
+									viewBox="0 0 24 24"
+									stroke="currentColor"
+								>
+									<path
+										strokeLinecap="round"
+										strokeLinejoin="round"
+										strokeWidth={2}
+										d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+									/>
+								</svg>
+								<span>Photos & Vidéos</span>
 							</button>
 							<button
 								className={`py-2 px-4 font-medium flex items-center gap-2 ${
@@ -664,46 +684,156 @@ const Stories = () => {
 										? "text-green-600 border-b-2 border-green-600"
 										: "text-gray-600 dark:text-gray-400"
 								}`}
+								onClick={() => setActiveTab("text")}
 							>
-								<UserCircle size={16} className={activeTab === "text" ? "" : "text-gray-400 dark:text-gray-600"} />
-								Texte
+								<svg
+									xmlns="http://www.w3.org/2000/svg"
+									className="h-5 w-5"
+									fill="none"
+									viewBox="0 0 24 24"
+									stroke="currentColor"
+								>
+									<path
+										strokeLinecap="round"
+										strokeLinejoin="round"
+										strokeWidth={2}
+										d="M4 6h16M4 12h16m-7 6h7"
+									/>
+								</svg>
+								<span>Texte</span>
 							</button>
 						</div>
 
-						{activeTab === "media" && (
-							<div className="mt-4">
-								<input
-									type="file"
-									ref={fileInputRef}
-									onChange={handleFileChange}
-									className="hidden"
-								/>
-								<button
-									onClick={() => fileInputRef.current.click()}
-									className="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-white rounded-lg transition-all"
+						{activeTab === "media" ? (
+							<div className="flex flex-col items-center py-4">
+								{selectedFile ? (
+									<div className="w-full">
+										{selectedFile.type.includes("video") ? (
+											<video
+												src={URL.createObjectURL(selectedFile)}
+												controls
+												className="max-h-64 w-full rounded-lg object-contain"
+											/>
+										) : (
+											<img
+												src={
+													URL.createObjectURL(selectedFile) ||
+													"/placeholder.svg?height=256&width=256"
+												}
+												alt="Preview"
+												className="max-h-64 w-full object-contain rounded-lg"
+											/>
+										)}
+										<textarea
+											className="w-full mt-4 p-3 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-white rounded-lg"
+											placeholder="Ajouter une légende..."
+											value={textContent}
+											onChange={(e) => setTextContent(e.target.value)}
+											rows={2}
+										/>
+									</div>
+								) : (
+									<div
+										className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-8 text-center cursor-pointer w-full"
+										onClick={() => fileInputRef.current.click()}
+									>
+										<div className="flex flex-col items-center">
+											<svg
+												xmlns="http://www.w3.org/2000/svg"
+												className="h-12 w-12 text-gray-400 mb-2"
+												fill="none"
+												viewBox="0 0 24 24"
+												stroke="currentColor"
+											>
+												<path
+													strokeLinecap="round"
+													strokeLinejoin="round"
+													strokeWidth={2}
+													d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+												/>
+											</svg>
+											<p className="text-gray-600 dark:text-gray-400 mb-1">
+												Sélectionner une photo ou vidéo
+											</p>
+											<p className="text-xs text-gray-500 dark:text-gray-500">
+												JPG, PNG ou MP4
+											</p>
+										</div>
+										<input
+											type="file"
+											ref={fileInputRef}
+											onChange={handleFileChange}
+											accept="image/*,video/*"
+											className="hidden"
+										/>
+									</div>
+								)}
+							</div>
+						) : (
+							<div className="py-4">
+								<div className="flex flex-wrap gap-2 mb-4">
+									{gradients.map((gradient, index) => (
+										<button
+											key={index}
+											className={`w-8 h-8 rounded-full ${gradient} ${
+												bgColor === gradient
+													? "ring-2 ring-green-500 ring-offset-2 dark:ring-offset-gray-800"
+													: ""
+											}`}
+											onClick={() => setBgColor(gradient)}
+										/>
+									))}
+								</div>
+								<div
+									className={`w-full h-40 ${bgColor} rounded-lg p-4 flex items-center justify-center mb-4`}
 								>
-									Choisir un fichier
-								</button>
+									<textarea
+										className="w-full h-full bg-transparent text-white text-center resize-none border-none focus:ring-0 focus:outline-none placeholder-white placeholder-opacity-70"
+										placeholder="Écrivez votre message..."
+										value={textContent}
+										onChange={(e) => setTextContent(e.target.value)}
+									/>
+								</div>
 							</div>
 						)}
 
-						{activeTab === "text" && (
-							<div className="mt-4">
-								<textarea
-									value={textContent}
-									onChange={(e) => setTextContent(e.target.value)}
-									placeholder="Entrez votre texte ici..."
-									className="w-full h-20 p-2 border border-gray-200 dark:border-gray-700 rounded-lg"
-								></textarea>
-							</div>
-						)}
-
-						<div className="mt-4">
+						<div className="flex justify-end gap-2 mt-2">
 							<button
-								onClick={handleAddStory}
-								className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-all"
+								className="px-4 py-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"
+								onClick={() => setShowAddMenu(false)}
 							>
-								Créer la story
+								Annuler
+							</button>
+							<button
+								className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg disabled:opacity-50 flex items-center gap-2"
+								onClick={handleAddStory}
+								disabled={
+									loading ||
+									(activeTab === "media" && !selectedFile) ||
+									(activeTab === "text" && !textContent.trim())
+								}
+							>
+								{loading ? (
+									"Publication..."
+								) : (
+									<>
+										<span>Publier</span>
+										<svg
+											xmlns="http://www.w3.org/2000/svg"
+											className="h-5 w-5"
+											fill="none"
+											viewBox="0 0 24 24"
+											stroke="currentColor"
+										>
+											<path
+												strokeLinecap="round"
+												strokeLinejoin="round"
+												strokeWidth={2}
+												d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"
+											/>
+										</svg>
+									</>
+								)}
 							</button>
 						</div>
 					</div>
