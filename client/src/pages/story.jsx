@@ -15,6 +15,7 @@ import StoryViewer from "../pages/storyViewer";
 import SideNav from "../components/SideNav";
 import { formatDistanceToNow } from "date-fns";
 import { fr } from "date-fns/locale";
+import SkeletonProfile from "../components/SkeletonProfile";
 
 const Stories = () => {
 	const navigate = useNavigate();
@@ -27,6 +28,7 @@ const Stories = () => {
 	const [activeTab, setActiveTab] = useState("media");
 	const fileInputRef = useRef(null);
 	const [loading, setLoading] = useState(false);
+	const [isLoading, setIsLoading] = useState(true);
 	const [activeIcon, setActiveIcon] = useState("story");
 	const [selectedStory, setSelectedStory] = useState(null);
 	const [bgColor, setBgColor] = useState(
@@ -149,6 +151,7 @@ const Stories = () => {
 	}, [stories, userData, viewedStoryIds]);
 
 	const fetchStories = async () => {
+		setIsLoading(true);
 		try {
 			const res = await getActiveStories();
 			if (res.success) {
@@ -158,6 +161,8 @@ const Stories = () => {
 			}
 		} catch (error) {
 			console.error("Erreur fetchStories:", error);
+		} finally {
+			setIsLoading(false);
 		}
 	};
 
@@ -261,6 +266,39 @@ const Stories = () => {
 				await markStoryAsViewed(story.id);
 				// Mettre à jour la liste des stories vues
 				setViewedStoryIds((prev) => [...prev, story.id]);
+
+				// Mettre à jour les états des stories immédiatement
+				setRecentStories((prev) => {
+					const updatedRecent = prev.filter(
+						(group) => group.user_id !== story.user_id
+					);
+					return updatedRecent;
+				});
+
+				setViewedStories((prev) => {
+					// Vérifier si le groupe existe déjà dans viewedStories
+					const existingGroup = prev.find(
+						(group) => group.user_id === story.user_id
+					);
+
+					if (existingGroup) {
+						// Mettre à jour le groupe existant
+						return prev.map((group) =>
+							group.user_id === story.user_id
+								? { ...group, hasUnviewed: false }
+								: group
+						);
+					} else {
+						// Créer un nouveau groupe pour les stories vues
+						const newGroup = {
+							user_id: story.user_id,
+							stories: userStoryGroup.stories,
+							latestStory: userStoryGroup.latestStory,
+							hasUnviewed: false,
+						};
+						return [...prev, newGroup];
+					}
+				});
 			} catch (error) {
 				console.error("Erreur lors du marquage de la story comme vue:", error);
 			}
@@ -315,185 +353,236 @@ const Stories = () => {
 				{/* Panneau de gauche - Liste des stories */}
 				<div className="w-1/3 border-r border-gray-200 dark:border-gray-800 overflow-y-auto">
 					<div className="p-4">
-						<h1 className="text-xl font-bold text-gray-800 dark:text-white mb-4">
-							Status
-						</h1>
-
-						{/* Ma story */}
-						<div className="mb-6">
-							<div
-								className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-800 cursor-pointer"
-								onClick={() => {
-									if (myStory) {
-										openStoryView(myStory);
-									} else {
+						<div className="flex justify-between items-center mb-4">
+							<h1 className="text-xl font-bold text-gray-800 dark:text-white">
+								Status
+							</h1>
+							{myStory && (
+								<button
+									onClick={() => {
 										setActiveTab("media");
 										setShowAddMenu(true);
-									}
-								}}
-							>
-								<div className="relative">
-									<div className="w-12 h-12 rounded-full bg-gray-300 dark:bg-gray-700 overflow-hidden">
-										{myStory && myStory.type === "photo" ? (
-											<img
-												src={
-													myStory.media_url ||
-													"/placeholder.svg?height=48&width=48"
-												}
-												alt="Ma story"
-												className="w-full h-full object-cover"
-											/>
-										) : (
-											<UserCircle className="w-full h-full text-gray-500 dark:text-gray-400" />
-										)}
-									</div>
-									<div className="absolute bottom-0 right-0 bg-green-500 rounded-full p-1 shadow-lg">
-										<Plus size={12} className="text-white" />
-									</div>
-								</div>
-								<div>
-									<p className="font-medium text-gray-800 dark:text-white">
-										My status
-									</p>
-									<p className="text-xs text-gray-500 dark:text-gray-400">
-										{myStory ? formatTime(myStory.created_at) : "No updates"}
-									</p>
-								</div>
-							</div>
+									}}
+									className="bg-green-500 rounded-full p-2 shadow-lg cursor-pointer hover:bg-green-600 transition-colors"
+								>
+									<Plus size={16} className="text-white" />
+								</button>
+							)}
 						</div>
 
-						{/* Stories récentes */}
-						{recentStories.length > 0 && (
-							<div className="mb-6">
+						{isLoading ? (
+							<>
+								{/* Skeleton pour My Status */}
+
+								<div className="mb-7 mt-6 ml-3 ">
+									<SkeletonProfile />
+								</div>
+								{/* Skeleton pour les stories des autres personnes */}
+
 								<h2 className="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase mb-2 px-3">
 									Recent updates
 								</h2>
-
-								{recentStories.map((userStoryGroup) => (
-									<div
-										key={`user-${userStoryGroup.user_id}`}
-										className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-800 cursor-pointer"
-										onClick={() => openStoryView(userStoryGroup)}
-									>
-										<div className="w-12 h-12 rounded-full p-[2px] bg-gradient-to-r from-green-400 to-blue-500">
-											{userStoryGroup.latestStory.type === "text" ? (
-												<div
-													className={`w-full h-full rounded-full flex items-center justify-center ${
-														userStoryGroup.latestStory.background ||
-														"bg-gradient-to-r from-purple-500 to-pink-500"
-													}`}
-												>
-													<span className="text-white font-bold text-lg">
-														{getUsernameById(userStoryGroup.user_id)
-															.charAt(0)
-															.toUpperCase()}
-													</span>
-												</div>
-											) : (
-												<img
-													src={
-														userStoryGroup.latestStory.media_url ||
-														"/placeholder.svg?height=48&width=48"
-													}
-													alt="Story"
-													className="w-full h-full object-cover rounded-full"
-												/>
-											)}
-										</div>
-										<div>
-											<p className="font-medium text-gray-800 dark:text-white">
-												{getUsernameById(userStoryGroup.user_id)}
-											</p>
-											<div className="flex items-center">
-												<p className="text-xs text-gray-500 dark:text-gray-400">
-													{formatTime(userStoryGroup.latestStory.created_at)}
-												</p>
-												{userStoryGroup.stories.length > 1 && (
-													<span className="ml-2 text-xs bg-gray-200 dark:bg-gray-700 px-1.5 py-0.5 rounded-full">
-														{userStoryGroup.stories.length}
-													</span>
-												)}
-											</div>
-										</div>
-									</div>
-								))}
-							</div>
-						)}
-
-						{/* Stories vues */}
-						{viewedStories.length > 0 && (
-							<div>
-								<h2 className="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase mb-2 px-3">
-									Viewed updates
-								</h2>
-
-								{viewedStories.map((userStoryGroup) => (
-									<div
-										key={`user-${userStoryGroup.user_id}`}
-										className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-800 cursor-pointer"
-										onClick={() => openStoryView(userStoryGroup)}
-									>
-										<div className="w-12 h-12 rounded-full bg-gray-300 dark:bg-gray-700 overflow-hidden">
-											{userStoryGroup.latestStory.type === "text" ? (
-												<div
-													className={`w-full h-full rounded-full flex items-center justify-center ${
-														userStoryGroup.latestStory.background ||
-														"bg-gradient-to-r from-purple-500 to-pink-500"
-													}`}
-												>
-													<span className="text-white font-bold text-lg">
-														{getUsernameById(userStoryGroup.user_id)
-															.charAt(0)
-															.toUpperCase()}
-													</span>
-												</div>
-											) : (
-												<img
-													src={
-														userStoryGroup.latestStory.media_url ||
-														"/placeholder.svg?height=48&width=48"
-													}
-													alt="Story"
-													className="w-full h-full object-cover rounded-full"
-												/>
-											)}
-										</div>
-										<div>
-											<p className="font-medium text-gray-800 dark:text-white">
-												{getUsernameById(userStoryGroup.user_id)}
-											</p>
-											<div className="flex items-center">
-												<p className="text-xs text-gray-500 dark:text-gray-400">
-													{formatTime(userStoryGroup.latestStory.created_at)}
-												</p>
-												{userStoryGroup.stories.length > 1 && (
-													<span className="ml-2 text-xs bg-gray-200 dark:bg-gray-700 px-1.5 py-0.5 rounded-full">
-														{userStoryGroup.stories.length}
-													</span>
-												)}
-											</div>
-										</div>
-									</div>
-								))}
-							</div>
-						)}
-
-						{/* Aucune story */}
-						{recentStories.length === 0 &&
-							viewedStories.length === 0 &&
-							!myStory && (
-								<div className="text-center py-8">
-									<p className="text-gray-500 dark:text-gray-400 mb-4">
-										Aucune story disponible
-									</p>
-									<button
-										onClick={() => setShowAddMenu(true)}
-										className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-all"
-									>
-										Créer une story
-									</button>
+								<div className="mb-6 mt-6 ml-3">
+									<SkeletonProfile />
 								</div>
-							)}
+								<div className="mb-6 mt-6 ml-3">
+									<SkeletonProfile />
+								</div>
+								{/* Skeleton pour les stories vues */}
+							</>
+						) : (
+							<>
+								{/* Ma story */}
+								<div className="mb-6">
+									<div
+										className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-800 cursor-pointer"
+										onClick={() => {
+											if (myStory) {
+												openStoryView(myStory);
+											} else {
+												setActiveTab("media");
+												setShowAddMenu(true);
+											}
+										}}
+									>
+										<div className="relative">
+											{myStory ? (
+												<div className="w-12 h-12 rounded-full bg-gray-300 dark:bg-gray-700 overflow-hidden">
+													{myStory.type === "photo" ? (
+														<img
+															src={
+																myStory.media_url ||
+																"/placeholder.svg?height=48&width=48"
+															}
+															alt="Ma story"
+															className="w-full h-full object-cover"
+														/>
+													) : (
+														<UserCircle className="w-full h-full text-gray-500 dark:text-gray-400" />
+													)}
+												</div>
+											) : (
+												<div className="w-12 h-12 rounded-full bg-gray-300 dark:bg-gray-700 overflow-hidden">
+													<UserCircle className="w-full h-full text-gray-500 dark:text-gray-400" />
+												</div>
+											)}
+											{!myStory && (
+												<button className="absolute bottom-0 right-0 bg-green-500 rounded-full p-1 shadow-lg cursor-pointer hover:bg-green-600 transition-colors">
+													<Plus size={12} className="text-white" />
+												</button>
+											)}
+										</div>
+										<div>
+											<p className="font-medium text-gray-800 dark:text-white">
+												My status
+											</p>
+											<p className="text-xs text-gray-500 dark:text-gray-400">
+												{myStory
+													? formatTime(myStory.created_at)
+													: "No updates"}
+											</p>
+										</div>
+									</div>
+								</div>
+
+								{/* Stories récentes */}
+								{recentStories.length > 0 && (
+									<div className="mb-6">
+										<h2 className="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase mb-2 px-3">
+											Recent updates
+										</h2>
+
+										{recentStories.map((userStoryGroup) => (
+											<div
+												key={`user-${userStoryGroup.user_id}`}
+												className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-800 cursor-pointer"
+												onClick={() => openStoryView(userStoryGroup)}
+											>
+												<div className="w-12 h-12 rounded-full p-[2px] bg-gradient-to-r from-green-400 to-blue-500">
+													{userStoryGroup.latestStory.type === "text" ? (
+														<div
+															className={`w-full h-full rounded-full flex items-center justify-center ${
+																userStoryGroup.latestStory.background ||
+																"bg-gradient-to-r from-purple-500 to-pink-500"
+															}`}
+														>
+															<span className="text-white font-bold text-lg">
+																{getUsernameById(userStoryGroup.user_id)
+																	.charAt(0)
+																	.toUpperCase()}
+															</span>
+														</div>
+													) : (
+														<img
+															src={
+																userStoryGroup.latestStory.media_url ||
+																"/placeholder.svg?height=48&width=48"
+															}
+															alt="Story"
+															className="w-full h-full object-cover rounded-full"
+														/>
+													)}
+												</div>
+												<div>
+													<p className="font-medium text-gray-800 dark:text-white">
+														{getUsernameById(userStoryGroup.user_id)}
+													</p>
+													<div className="flex items-center">
+														<p className="text-xs text-gray-500 dark:text-gray-400">
+															{formatTime(
+																userStoryGroup.latestStory.created_at
+															)}
+														</p>
+														{userStoryGroup.stories.length > 1 && (
+															<span className="ml-2 text-xs bg-gray-200 dark:bg-gray-700 px-1.5 py-0.5 rounded-full">
+																{userStoryGroup.stories.length}
+															</span>
+														)}
+													</div>
+												</div>
+											</div>
+										))}
+									</div>
+								)}
+
+								{/* Stories vues */}
+								{viewedStories.length > 0 && (
+									<div>
+										<h2 className="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase mb-2 px-3">
+											Viewed updates
+										</h2>
+
+										{viewedStories.map((userStoryGroup) => (
+											<div
+												key={`user-${userStoryGroup.user_id}`}
+												className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-800 cursor-pointer"
+												onClick={() => openStoryView(userStoryGroup)}
+											>
+												<div className="w-12 h-12 rounded-full bg-gray-300 dark:bg-gray-700 overflow-hidden">
+													{userStoryGroup.latestStory.type === "text" ? (
+														<div
+															className={`w-full h-full rounded-full flex items-center justify-center ${
+																userStoryGroup.latestStory.background ||
+																"bg-gradient-to-r from-purple-500 to-pink-500"
+															}`}
+														>
+															<span className="text-white font-bold text-lg">
+																{getUsernameById(userStoryGroup.user_id)
+																	.charAt(0)
+																	.toUpperCase()}
+															</span>
+														</div>
+													) : (
+														<img
+															src={
+																userStoryGroup.latestStory.media_url ||
+																"/placeholder.svg?height=48&width=48"
+															}
+															alt="Story"
+															className="w-full h-full object-cover rounded-full"
+														/>
+													)}
+												</div>
+												<div>
+													<p className="font-medium text-gray-800 dark:text-white">
+														{getUsernameById(userStoryGroup.user_id)}
+													</p>
+													<div className="flex items-center">
+														<p className="text-xs text-gray-500 dark:text-gray-400">
+															{formatTime(
+																userStoryGroup.latestStory.created_at
+															)}
+														</p>
+														{userStoryGroup.stories.length > 1 && (
+															<span className="ml-2 text-xs bg-gray-200 dark:bg-gray-700 px-1.5 py-0.5 rounded-full">
+																{userStoryGroup.stories.length}
+															</span>
+														)}
+													</div>
+												</div>
+											</div>
+										))}
+									</div>
+								)}
+
+								{/* Aucune story */}
+								{recentStories.length === 0 &&
+									viewedStories.length === 0 &&
+									!myStory && (
+										<div className="text-center py-8">
+											<p className="text-gray-500 dark:text-gray-400 mb-4">
+												Aucune story disponible
+											</p>
+											<button
+												onClick={() => setShowAddMenu(true)}
+												className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-all"
+											>
+												Créer une story
+											</button>
+										</div>
+									)}
+							</>
+						)}
 					</div>
 				</div>
 

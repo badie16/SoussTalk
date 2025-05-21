@@ -13,7 +13,7 @@ exports.createStory = async (
 	const expires_at = new Date(
 		now.getTime() + 24 * 60 * 60 * 1000
 	).toISOString();
-
+	console.log(type)
 	const { data, error } = await supabase
 		.from("stories")
 		.insert([
@@ -130,27 +130,33 @@ exports.markStoryAsViewed = async (storyId, userId) => {
 };
 
 exports.getViewedStories = async (userId) => {
-	const { data, error } = await supabase
-		.from("story_views")
-		.select("story_id")
-		.eq("user_id", userId);
-	if (error) throw new Error(error.message);
+	try {
+		const { data, error } = await supabase
+			.from("story_views")
+			.select("story_id")
+			.eq("user_id", userId);
+		console.log(error);
+		if (error) throw new Error(error.message);
 
-	const storyIds = data.map((view) => view.story_id);
+		const storyIds = data.map((view) => view.story_id);
 
-	if (storyIds.length === 0) {
-		return [];
+		if (storyIds.length === 0) {
+			return [];
+		}
+
+		const { data: stories, error: storiesError } = await supabase
+			.from("stories")
+			.select("*, users(username)")
+			.in("id", storyIds)
+			.gt("expires_at", new Date().toISOString())
+			.order("created_at", { ascending: false });
+
+		if (storiesError) throw new Error(storiesError.message);
+		return stories;
+	} catch (error) {
+		console.error("Erreur lors Récupérer les stories viewed", error);
+		throw error;
 	}
-
-	const { data: stories, error: storiesError } = await supabase
-		.from("stories")
-		.select("*, users(username)")
-		.in("id", storyIds)
-		.gt("expires_at", new Date().toISOString())
-		.order("created_at", { ascending: false });
-
-	if (storiesError) throw new Error(storiesError.message);
-	return stories;
 };
 
 exports.deleteStory = async (storyId) => {
@@ -202,4 +208,17 @@ exports.replyToStory = async (storyId, userId, message) => {
 
 	if (error) throw new Error(error.message);
 	return data;
+};
+exports.checkFriendship = async (userId1, userId2) => {
+	const { data, error } = await supabase
+		.from("friendships")
+		.select("*")
+		.or(
+			`and(user1_id.eq.${userId1},user2_id.eq.${userId2}),and(user1_id.eq.${userId2},user2_id.eq.${userId1})`
+		)
+		.single();
+	if (error && error.code !== "PGRST116") {
+		throw new Error(error.message);
+	}
+	return !!data;
 };

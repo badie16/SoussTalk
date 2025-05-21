@@ -70,7 +70,7 @@ exports.protect = async (req, res, next) => {
 					.status(401)
 					.json({ message: "Non autorisé, token invalide" });
 			}
-		}
+		}		
 	} catch (error) {
 		console.error("Auth middleware error:", error);
 		res.status(401).json({ message: "Non autorisé, erreur serveur" });

@@ -338,6 +338,4 @@ function ChatItem({ contact, onClick, isSelected }) {
     </div>
   )
 }
-
-export default Chat
- 
+export default Chat;
