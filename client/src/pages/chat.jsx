@@ -101,63 +101,38 @@ const Chat = () => {
   const handleIconClick = (iconName) => {
     setActiveIcon(iconName)
 
-    // Toggle sidebar view when clicking users icon
-    if (iconName === "users") {
-      setSidebarView("friends")
-    } else if (iconName === "message-square") {
-      setSidebarView("chats")
-    } else if (iconName === "phone") {
-      navigate("/calls")
-    }
-  }
+		// Toggle sidebar view when clicking users icon
+		if (iconName === "users") {
+			setSidebarView("friends");
+		} else if (iconName === "message-square") {
+			setSidebarView("chats");
+		}
+	};
+	// Handle chat selection
+	const handleChatSelect = (chat) => {
+		setSelectedChat(chat);
+		if (isMobileView) {
+			setShowChatList(false);
+		}
+		// Switch back to chats view when selecting a chat from friends view
+		if (sidebarView === "friends") {
+			setSidebarView("chats");
+			setActiveIcon("message-square");
+		}
+	};
+	// Handle back button in mobile view
+	const handleBackToList = () => {
+		setShowChatList(true);
+	};
+	// Filter contacts based on search query
+	const filteredContacts = contacts.filter((contact) =>
+		contact.name.toLowerCase().includes(searchQuery.toLowerCase())
+	);
+	return (
+		<main className="flex h-screen bg-gray-100 dark:bg-gray-900  themed-page overflow-hidden">
+			{/* Left navigation sidebar - fixed position */}
 
-  // Handle chat selection
-  const handleChatSelect = (chat) => {
-    setSelectedChat(chat)
-    if (isMobileView) {
-      setShowChatList(false)
-    }
-    // Switch back to chats view when selecting a chat from friends view
-    if (sidebarView === "friends") {
-      setSidebarView("chats")
-      setActiveIcon("message-square")
-    }
-  }
-
-  // Handle back button in mobile view
-  const handleBackToList = () => {
-    setShowChatList(true)
-  }
-
-  // Handle call initiation
-  const handleCallContact = async (contact, callType = "audio") => {
-    try {
-      // Initiate the call
-      const call = await initiateCall(contact, callType)
-
-      // Set the current call
-      setCurrentCall(call)
-
-      // Show the call modal
-      setShowCallModal(true)
-    } catch (error) {
-      console.error("Error initiating call:", error)
-    }
-  }
-
-  // Handle call end
-  const handleCallEnd = (call) => {
-    setShowCallModal(false)
-    setCurrentCall(null)
-  }
-
-  // Filter contacts based on search query
-  const filteredContacts = contacts.filter((contact) => contact.name.toLowerCase().includes(searchQuery.toLowerCase()))
-
-  return (
-    <main className="flex h-screen bg-[#1a2236] overflow-hidden">
-      {/* Left navigation sidebar - fixed position */}
-      <SideNav activeIcon={activeIcon} onIconClick={handleIconClick}></SideNav>
+			<SideNav activeIcon={activeIcon} onIconClick={handleIconClick}></SideNav>
 
       {/* Content area - with left margin to account for fixed sidebar */}
       <div className="flex flex-1 ml-[60px]">
@@ -229,16 +204,23 @@ const Chat = () => {
 }
 
 // Chat List View Component
-const ChatListView = ({ contacts, searchQuery, setSearchQuery, isLoading, selectedChat, handleChatSelect }) => {
-  return (
-    <div className="h-full bg-[#1a2236] border-r border-[#2a3447] flex flex-col">
-      {/* Header */}
-      <div className="p-4 flex justify-between items-center">
-        <h1 className="text-xl font-semibold text-white">Chats</h1>
-        <button className="w-10 h-10 flex items-center justify-center rounded-full bg-[#2a3447] text-gray-300 hover:bg-[#3a4457] transition-colors">
-          <Plus size={20} />
-        </button>
-      </div>
+const ChatListView = ({
+	contacts,
+	searchQuery,
+	setSearchQuery,
+	isLoading,
+	selectedChat,
+	handleChatSelect,
+}) => {
+	return (
+		<div className="h-full bg-gray-100 dark:bg-gray-900  themed-page border-r border-[#2a3447] flex flex-col">
+			{/* Header */}
+			<div className="p-4 flex justify-between items-center">
+				<h1 className="text-xl font-semibold text-white">Chats</h1>
+				<button className="w-10 h-10 flex items-center justify-center rounded-full bg-[#2a3447] text-gray-300 hover:bg-[#3a4457] transition-colors">
+					<Plus size={20} />
+				</button>
+			</div>
 
       {/* Search */}
       <div className="px-4 pb-4">

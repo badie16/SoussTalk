@@ -3,41 +3,39 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import { updateUserPreferences } from "../services/userService";
 
-// Définition des thèmes disponibles
 export const THEMES = {
-	LIGHT: "light",
-	DARK: "dark",
-	SYSTEM: "system",
+  LIGHT: "light",
+  DARK: "dark",
+  SYSTEM: "system",
 };
 
-// Création du contexte
-export const ThemeContext = createContext(null);
+// Créez le contexte avec une valeur par défaut plus robuste
+export const ThemeContext = createContext({
+  theme: THEMES.SYSTEM,
+  isDarkMode: false,
+  changeTheme: () => {},
+  availableThemes: THEMES,
+});
 
-// Hook personnalisé pour utiliser le contexte
 export const useTheme = () => {
-	const context = useContext(ThemeContext);
-	if (!context) {
-		throw new Error(
-			"useTheme doit être utilisé à l'intérieur d'un ThemeProvider"
-		);
-	}
-	return context;
+  const context = useContext(ThemeContext);
+  if (context === undefined) {
+    throw new Error("useTheme must be used within a ThemeProvider");
+  }
+  return context;
 };
 
-// Provider du contexte
 export const ThemeProvider = ({ children }) => {
-	// État pour le thème actuel
-	const [theme, setTheme] = useState(() => {
-		// Récupérer le thème depuis localStorage ou utiliser "system" par défaut
-		if (typeof window !== "undefined") {
-			const savedTheme = localStorage.getItem("theme");
-			return savedTheme || THEMES.SYSTEM;
-		}
-		return THEMES.SYSTEM;
-	});
+  const [theme, setTheme] = useState(THEMES.SYSTEM);
+  const [isDarkMode, setIsDarkMode] = useState(false);
 
-	// État pour savoir si le mode sombre est actif
-	const [isDarkMode, setIsDarkMode] = useState(false);
+  // Initialisation du thème
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const savedTheme = localStorage.getItem("theme");
+      setTheme(savedTheme || THEMES.SYSTEM);
+    }
+  }, []);
 
 	// Fonction pour changer le thème
 	const changeTheme = (newTheme) => {

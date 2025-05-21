@@ -15,5 +15,6 @@ router.post("/accept", friendController.acceptFriendRequest); // plus de :userId
 router.post("/reject", friendController.rejectFriendRequest); // plus de :userId
 router.delete("/d/:targetUserId", friendController.removeFriend); // garder friendId
 router.get("/", friendController.getFriends);
+router.get("/search", friendController.searchFriends);
 
 module.exports = router;

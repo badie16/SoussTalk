@@ -2,8 +2,6 @@
 
 **SoussTalk** is a real-time messaging platform with intelligent features like emotion and scam detection. This project is developed by a team of students from **ENSIASD**, with a strong focus on security, collaboration, and user experience.  
 
-
-
 ---  
 
 ## 🌟 Key Features  

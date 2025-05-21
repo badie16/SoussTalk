@@ -41,8 +41,9 @@ exports.sendFriendRequest = async (req, res) => {
 // Annuler une demande d'amitié
 exports.cancelFriendRequest = async (req, res) => {
 	try {
-		const { userId, targetUserId } = getIds(req);
-		await friendService.cancelFriendRequest(userId, targetUserId);
+		console.log(getIds(req));
+		const { userId, targetUserIdParams } = getIds(req);
+		await friendService.cancelFriendRequest(userId, targetUserIdParams);
 		res
 			.status(200)
 			.json({ success: true, message: "Demande d'amitié annulée" });
@@ -106,9 +107,21 @@ exports.getFriends = async (req, res) => {
 		res.status(500).json({ message: error | "Erreur serveur" });
 	}
 };
-
+exports.searchFriends = async (req, res) => {
+	const userId = req.user.id;
+	const q = req.query.query;
+	try {
+		if (!q) return res.status(400).json({ error: "Search term is required" });
+		const results = await friendService.searchFriends(userId, q);
+		res.json(results);
+	} catch (error) {
+		res
+			.status(500)
+			.json({ error: "Erreur lors de la recherche d'utilisateurs" });
+	}
+};
 const getIds = (req) => ({
 	userId: req.user.id,
 	targetUserIdParams: req.params.targetUserId,
-	targetUserIdBody: req.body.friendId,
+	targetUserIdBody: req.body?.friendId,
 });
