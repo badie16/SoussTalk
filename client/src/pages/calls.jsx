@@ -22,16 +22,8 @@ const Calls = () => {
 
   // Handle icon click
   const handleIconClick = (iconName) => {
-    setActiveIcon(iconName)
-
-    if (iconName === "message-square") {
-      navigate("/chat")
-    } else if (iconName === "users") {
-      navigate("/contacts")
-    } else if (iconName === "user") {
-      navigate("/profile")
-    }
-  }
+		setActiveIcon(iconName);
+	};
 
   // Check if user is logged in and load call history
   useEffect(() => {

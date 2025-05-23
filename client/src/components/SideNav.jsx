@@ -1,29 +1,41 @@
-"use client"
-
-import { Link } from "react-router-dom"
+import { Link } from "react-router-dom";
+import { useState, useEffect } from "react";
 
 const SideNav = ({ activeIcon, onIconClick }) => {
-  return (
-    <div className="fixed left-0 top-0 bottom-0 w-[60px] bg-[#1e1e1e] flex flex-col items-center py-6 z-10">
-      {/* Top chat icon */}
-      <Link to="/chat" className="mb-6">
-        <div className="w-12 h-12 bg-green-600 rounded-md flex items-center justify-center">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="24"
-            height="24"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            className="text-white"
-          >
-            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
-          </svg>
-        </div>
-      </Link>
+	const [profileImage, setProfileImage] = useState("/placeholder.svg");
+
+	useEffect(() => {
+		// Charger l'image de profil depuis le localStorage
+		const userData = localStorage.getItem("user");
+		if (userData) {
+			const user = JSON.parse(userData);
+			if (user.avatar_url) {
+				setProfileImage(user.avatar_url);
+			}
+		}
+	}, []);
+
+	return (
+		<div className="fixed left-0 top-0 bottom-0 w-[60px] bg-[#1e1e1e] flex flex-col items-center py-6 z-10">
+			{/* Logo de l'application */}
+			<div className="mb-8">
+				<div className="w-10 h-10 bg-green-600 rounded-md flex items-center justify-center transition-transform hover:scale-110 duration-300">
+					<svg
+						xmlns="http://www.w3.org/2000/svg"
+						width="20"
+						height="20"
+						viewBox="0 0 24 24"
+						fill="none"
+						stroke="currentColor"
+						strokeWidth="2"
+						strokeLinecap="round"
+						strokeLinejoin="round"
+						className="text-white"
+					>
+						<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+					</svg>
+				</div>
+			</div>
 
 			{/* Icônes de navigation */}
 			<div className="flex flex-col items-center space-y-8 flex-1">
@@ -55,45 +67,46 @@ const SideNav = ({ activeIcon, onIconClick }) => {
 					icon="phone"
 					active={activeIcon === "phone"}
 					onClick={() => onIconClick && onIconClick("phone")}
+					to="/calls"	
 				/>
-				<NavIcon
-					icon="settings"
-					active={activeIcon === "settings"}
-					onClick={() => onIconClick && onIconClick("settings")}
-				/>
+				
 			</div>
 
-      {/* Theme toggle */}
-      <div className="mt-auto mb-4">
-        <button className="text-gray-400 hover:text-gray-200 transition-colors hover:rotate-[30deg] transition-transform duration-300">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="20"
-            height="20"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
-          </svg>
-        </button>
-      </div>
+			{/* Basculement de thème */}
+			<div className="mt-auto mb-4">
+				<button className="text-gray-400 hover:text-gray-200 transition-colors hover:rotate-[30deg] transition-transform duration-300">
+					<svg
+						xmlns="http://www.w3.org/2000/svg"
+						width="20"
+						height="20"
+						viewBox="0 0 24 24"
+						fill="none"
+						stroke="currentColor"
+						strokeWidth="2"
+						strokeLinecap="round"
+						strokeLinejoin="round"
+					>
+						<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+					</svg>
+				</button>
+			</div>
 
-      {/* Profile picture */}
-      <div className="mt-2">
-        <Link
-          to="/profile"
-          className="block w-10 h-10 rounded-full overflow-hidden border-2 border-green-500 transition-all hover:scale-110 hover:border-green-400 duration-300 focus:outline-none"
-        >
-          <img src="/placeholder.svg" alt="User profile" className="object-cover w-full h-full" />
-        </Link>
-      </div>
-    </div>
-  )
-}
+			{/* Photo de profil */}
+			<div className="mt-2">
+				<Link
+					to="/profile"
+					className="block w-10 h-10 rounded-full overflow-hidden border-2 border-green-500 transition-all hover:scale-110 hover:border-green-400 duration-300 focus:outline-none"
+				>
+					<img
+						src={profileImage || "/placeholder.svg"}
+						alt="User profile"
+						className="object-cover w-full h-full"
+					/>
+				</Link>
+			</div>
+		</div>
+	);
+};
 
 // Composant d'icône de navigation avec transitions et support de lien direct
 const NavIcon = ({ icon, active, onClick, to }) => {
@@ -207,4 +220,4 @@ const NavIcon = ({ icon, active, onClick, to }) => {
 	);
 };
 
-export default SideNav
+export default SideNav;
