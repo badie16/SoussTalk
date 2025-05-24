@@ -12,7 +12,7 @@ const userRoutes = require("./routes/userRoutes");
 const friendRoutes = require("./routes/friendRoutes");
 const storyRoutes = require("./routes/storyRoute");
 const sessionRoutes = require("./routes/sessionRoutes");
-// const messageRoutes = require("./routes/messageRoutes");
+const messageRoutes = require("./routes/messageRoutes");
 const notificationRoutes = require("./routes/notificationRoutes");
 
 // Import socket handlers
@@ -55,7 +55,7 @@ app.use("/api/users", userRoutes);
 app.use("/api/friends", friendRoutes);
 app.use("/api/stories", storyRoutes);
 app.use("/api/users/sessions", sessionRoutes);
-// app.use("/api/messages", messageRoutes);
+app.use("/api/messages", messageRoutes);
 app.use("/api/notifications", notificationRoutes);
 
 // Socket.io authentication middleware - CORRIGÉ

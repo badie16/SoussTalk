@@ -2,16 +2,12 @@ const express = require("express");
 const router = express.Router();
 const messageController = require("../controllers/messageController");
 const { protect } = require("../middleware/authMiddleware");
-
+const upload = require("../middleware/upload");
 // Toutes les routes nécessitent une authentification
 router.use(protect);
 
 // Routes pour les messages
-router.post(
-	"/send",
-	messageController.uploadFile,
-	messageController.sendMessage
-);
+router.post("/send", upload.single("file"), messageController.sendMessage);
 router.get("/conversation/:conversationId", messageController.getMessages);
 router.get("/conversations", messageController.getUserConversations);
 router.delete("/:messageId", messageController.deleteMessage);
