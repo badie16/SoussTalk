@@ -40,6 +40,25 @@ export const createStory = async (storyData) => {
 		return { success: false, message };
 	}
 };
+export const uploadMedia = async (file) => {
+	const token = localStorage.getItem("token");
+	if (!token) return { success: false, message: "Utilisateur non authentifié" };
+
+	const formData = new FormData();
+	formData.append("media", file);
+	try {
+		const response = await axios.post(`${API_URL}/api/stories/upload`, formData, {
+			headers: {
+				Authorization: `Bearer ${token}`,
+				"Content-Type": "multipart/form-data",
+			},
+		});
+		return response.data.url;
+	} catch (error) {
+		console.error("Erreur upload média :", error);
+		throw new Error(error.response?.data?.message || "Erreur lors de l'upload");
+	}
+};
 
 // 🔹 Récupérer les stories actives (uniquement des amis)
 export const getActiveStories = async () => {
@@ -137,26 +156,6 @@ export const getViewedStories = async () => {
 	}
 };
 
-export const uploadMedia = async (file) => {
-	const token = localStorage.getItem("token");
-	if (!token) return { success: false, message: "Utilisateur non authentifié" };
-
-	const formData = new FormData();
-	formData.append("media", file);
-
-	try {
-		const response = await axios.post(`${API_URL}/api/upload/story`, formData, {
-			headers: {
-				Authorization: `Bearer ${token}`,
-				"Content-Type": "multipart/form-data",
-			},
-		});
-		return response.data.url;
-	} catch (error) {
-		console.error("Erreur upload média :", error);
-		throw new Error(error.response?.data?.message || "Erreur lors de l'upload");
-	}
-};
 
 // 🔹 Supprimer une story
 export const deleteStory = async (storyId) => {

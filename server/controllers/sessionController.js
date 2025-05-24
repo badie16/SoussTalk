@@ -39,12 +39,10 @@ const getSessionHistory = async (req, res) => {
 		res.status(200).json(sessions);
 	} catch (error) {
 		console.error("Error retrieving session history:", error);
-		res
-			.status(500)
-			.json({
-				message:
-					"Erreur serveur lors de la récupération de l'historique des sessions",
-			});
+		res.status(500).json({
+			message:
+				"Erreur serveur lors de la récupération de l'historique des sessions",
+		});
 	}
 };
 
@@ -89,11 +87,13 @@ const createUserSession = async (req, res) => {
 	}
 };
 
-// Mark a session as trusted (not suspicious)
+// Mark a session as trusted (not suspicious) - SÉCURISÉ
 const markSessionAsTrusted = async (req, res) => {
 	try {
 		const { sessionId } = req.params;
-		console.log(`Marking session ${sessionId} as trusted`);
+		console.log(
+			`Marking session ${sessionId} as trusted by user ${req.user.id}`
+		);
 
 		// Get the session to check ownership
 		const session = await sessionService.getSessionById(sessionId);
@@ -102,9 +102,18 @@ const markSessionAsTrusted = async (req, res) => {
 			return res.status(404).json({ message: "Session non trouvée" });
 		}
 
-		// Check if the user is managing their own session or is admin
-		if (req.user.id !== session.user_id && req.user.role !== "admin") {
-			return res.status(403).json({ message: "Accès non autorisé" });
+		// SÉCURITÉ: Seul le propriétaire de la session peut la marquer comme fiable
+		if (req.user.id !== session.user_id) {
+			return res.status(403).json({
+				message: "Vous ne pouvez marquer comme fiable que vos propres sessions",
+			});
+		}
+
+		// Vérifier que la session est bien suspecte
+		if (!session.is_suspicious) {
+			return res.status(400).json({
+				message: "Cette session n'est pas marquée comme suspecte",
+			});
 		}
 
 		await sessionService.markSessionAsTrusted(sessionId);
@@ -124,15 +133,13 @@ const markSessionAsTrusted = async (req, res) => {
 			return res.status(400).json({ message: "ID de session requis" });
 		}
 
-		res
-			.status(500)
-			.json({
-				message: "Erreur serveur lors du marquage de la session comme fiable",
-			});
+		res.status(500).json({
+			message: "Erreur serveur lors du marquage de la session comme fiable",
+		});
 	}
 };
 
-// Terminate a session
+// Terminate a session - AVEC DÉCONNEXION AUTOMATIQUE
 const terminateUserSession = async (req, res) => {
 	try {
 		const { id, sessionId } = req.params;
@@ -143,7 +150,23 @@ const terminateUserSession = async (req, res) => {
 			return res.status(403).json({ message: "Accès non autorisé" });
 		}
 
+		// Get session info before terminating
+		const session = await sessionService.getSessionById(sessionId);
+		if (!session) {
+			return res.status(404).json({ message: "Session non trouvée" });
+		}
+
 		await sessionService.terminateSession(sessionId);
+
+		// Notifier l'utilisateur de la déconnexion via Socket.io
+		if (req.io) {
+			req.io.to(`user_${session.user_id}`).emit("session_terminated", {
+				sessionId: sessionId,
+				message: "Votre session a été terminée. Vous allez être déconnecté.",
+				reason: "Session terminée par l'utilisateur",
+			});
+		}
+
 		console.log(`Session ${sessionId} terminated successfully`);
 		res.status(200).json({ message: "Session terminée avec succès" });
 	} catch (error) {
@@ -164,7 +187,7 @@ const terminateUserSession = async (req, res) => {
 	}
 };
 
-// Terminate all sessions
+// Terminate all sessions - AVEC DÉCONNEXION AUTOMATIQUE
 const terminateAllUserSessions = async (req, res) => {
 	try {
 		const { id } = req.params;
@@ -178,7 +201,25 @@ const terminateAllUserSessions = async (req, res) => {
 			return res.status(403).json({ message: "Accès non autorisé" });
 		}
 
+		// Get all sessions before terminating
+		const sessions = await sessionService.getActiveSessions(id);
+		const sessionsToTerminate = sessions.filter(
+			(s) => s.id !== currentSessionId
+		);
+
 		await sessionService.terminateAllSessions(id, currentSessionId);
+
+		// Notifier tous les utilisateurs des sessions terminées
+		if (req.io) {
+			sessionsToTerminate.forEach((session) => {
+				req.io.to(`user_${session.user_id}`).emit("session_terminated", {
+					sessionId: session.id,
+					message: "Votre session a été terminée. Vous allez être déconnecté.",
+					reason: "Sessions multiples terminées par l'utilisateur",
+				});
+			});
+		}
+
 		console.log(`All sessions terminated successfully for user ${id}`);
 		res
 			.status(200)

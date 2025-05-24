@@ -31,6 +31,7 @@ import {
 	Calendar,
 } from "lucide-react";
 import { useCallback } from "react";
+import messageService from "../services/messageService";
 
 const SessionManager = ({ userId, compact = false }) => {
 	const [sessions, setSessions] = useState([]);
@@ -45,6 +46,41 @@ const SessionManager = ({ userId, compact = false }) => {
 	const [loadingHistory, setLoadingHistory] = useState(false);
 
 	const currentSessionId = localStorage.getItem("sessionId");
+
+	// Écouter les événements de session terminée
+	useEffect(() => {
+		if (messageService.socket) {
+			messageService.socket.on("session_terminated", handleSessionTerminated);
+		}
+
+		return () => {
+			if (messageService.socket) {
+				messageService.socket.off(
+					"session_terminated",
+					handleSessionTerminated
+				);
+			}
+		};
+	}, []);
+
+	const handleSessionTerminated = (data) => {
+		if (data.sessionId === currentSessionId) {
+			// Cette session a été terminée, déconnecter l'utilisateur
+			alert(data.message);
+
+			// Nettoyer le localStorage
+			localStorage.removeItem("token");
+			localStorage.removeItem("user");
+			localStorage.removeItem("sessionId");
+			localStorage.removeItem("sessionCreatedAt");
+
+			// Rediriger vers la page de connexion
+			window.location.href = "/login";
+		} else {
+			// Une autre session a été terminée, recharger la liste
+			loadSessions();
+		}
+	};
 
 	// Charger les sessions
 	useEffect(() => {
@@ -191,9 +227,16 @@ const SessionManager = ({ userId, compact = false }) => {
 		}
 	};
 
-	// Marquer une session comme fiable (non suspecte)
+	// Marquer une session comme fiable (non suspecte) - SÉCURISÉ
 	const handleTrustSession = async (sessionId) => {
 		if (!userId) return;
+
+		// Vérifier que c'est bien la session de l'utilisateur actuel
+		const session = sessions.find((s) => s.id === sessionId);
+		if (!session || session.user_id !== userId) {
+			setError("Vous ne pouvez marquer comme fiable que vos propres sessions");
+			return;
+		}
 
 		setLoading(true);
 		try {
@@ -230,6 +273,8 @@ const SessionManager = ({ userId, compact = false }) => {
 
 	// Afficher les détails d'une session
 	const renderSessionDetails = (session) => {
+		const isOwnSession = session.user_id === userId;
+
 		return (
 			<div className="mt-2 pl-10 space-y-2 text-sm text-gray-600 dark:text-gray-400">
 				{session.browser_name && (
@@ -283,13 +328,15 @@ const SessionManager = ({ userId, compact = false }) => {
 								{session.suspicious_reasons ||
 									"Cette session provient d'un nouvel appareil ou d'un nouvel emplacement."}
 							</p>
-							<button
-								onClick={() => handleTrustSession(session.id)}
-								className="mt-2 px-2 py-1 bg-green-100 text-green-800 text-xs rounded hover:bg-green-200 dark:bg-green-900/30 dark:text-green-300 dark:hover:bg-green-800/50 flex items-center"
-							>
-								<CheckCircle size={12} className="mr-1" />
-								C'est moi, marquer comme fiable
-							</button>
+							{isOwnSession && (
+								<button
+									onClick={() => handleTrustSession(session.id)}
+									className="mt-2 px-2 py-1 bg-green-100 text-green-800 text-xs rounded hover:bg-green-200 dark:bg-green-900/30 dark:text-green-300 dark:hover:bg-green-800/50 flex items-center"
+								>
+									<CheckCircle size={12} className="mr-1" />
+									C'est moi, marquer comme fiable
+								</button>
+							)}
 						</div>
 					</div>
 				)}
@@ -421,65 +468,69 @@ const SessionManager = ({ userId, compact = false }) => {
 						</div>
 
 						<div className="space-y-2 max-h-60 overflow-y-auto pr-1">
-							{sessions.map((session) => (
-								<div
-									key={session.id}
-									className={`p-2 rounded-md ${
-										session.id === currentSessionId
-											? "bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800"
-											: session.is_suspicious
-											? "bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800"
-											: "bg-gray-50 dark:bg-gray-800"
-									}`}
-								>
-									<div className="flex items-center justify-between">
-										<div className="flex items-center">
-											{getDeviceIcon(session)}
-											<div className="ml-2">
-												<div className="text-sm font-medium text-gray-800 dark:text-gray-200 flex items-center">
-													{session.device_name || "Appareil inconnu"}
-													{session.id === currentSessionId && " (Actuelle)"}
-													{session.is_suspicious && (
-														<AlertTriangle
-															size={14}
-															className="ml-1 text-yellow-500"
-														/>
-													)}
-												</div>
-												<div className="text-xs text-gray-500 dark:text-gray-400 flex items-center">
-													<Clock size={10} className="mr-1" />
-													{session.id === currentSessionId
-														? `Durée: ${currentDuration}`
-														: `Dernière activité: ${formatTimeSince(
-																session.last_active
-														  )}`}
+							{sessions.map((session) => {
+								const isOwnSession = session.user_id === userId;
+
+								return (
+									<div
+										key={session.id}
+										className={`p-2 rounded-md ${
+											session.id === currentSessionId
+												? "bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800"
+												: session.is_suspicious
+												? "bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800"
+												: "bg-gray-50 dark:bg-gray-800"
+										}`}
+									>
+										<div className="flex items-center justify-between">
+											<div className="flex items-center">
+												{getDeviceIcon(session)}
+												<div className="ml-2">
+													<div className="text-sm font-medium text-gray-800 dark:text-gray-200 flex items-center">
+														{session.device_name || "Appareil inconnu"}
+														{session.id === currentSessionId && " (Actuelle)"}
+														{session.is_suspicious && (
+															<AlertTriangle
+																size={14}
+																className="ml-1 text-yellow-500"
+															/>
+														)}
+													</div>
+													<div className="text-xs text-gray-500 dark:text-gray-400 flex items-center">
+														<Clock size={10} className="mr-1" />
+														{session.id === currentSessionId
+															? `Durée: ${currentDuration}`
+															: `Dernière activité: ${formatTimeSince(
+																	session.last_active
+															  )}`}
+													</div>
 												</div>
 											</div>
-										</div>
 
-										<div className="flex">
-											{session.is_suspicious && (
-												<button
-													onClick={() => handleTrustSession(session.id)}
-													className="p-1 mr-1 text-xs bg-green-100 text-green-800 rounded-md hover:bg-green-200 dark:bg-green-900/30 dark:text-green-300 dark:hover:bg-green-800/50"
-													title="Marquer comme fiable"
-												>
-													<CheckCircle size={12} />
-												</button>
-											)}
-											{session.id !== currentSessionId && (
-												<button
-													onClick={() => handleTerminateSession(session.id)}
-													className="p-1 text-xs bg-red-100 text-red-800 rounded-md hover:bg-red-200 dark:bg-red-900/30 dark:text-red-300 dark:hover:bg-red-800/50"
-													title="Déconnecter"
-												>
-													<LogOut size={12} />
-												</button>
-											)}
+											<div className="flex">
+												{session.is_suspicious && isOwnSession && (
+													<button
+														onClick={() => handleTrustSession(session.id)}
+														className="p-1 mr-1 text-xs bg-green-100 text-green-800 rounded-md hover:bg-green-200 dark:bg-green-900/30 dark:text-green-300 dark:hover:bg-green-800/50"
+														title="Marquer comme fiable"
+													>
+														<CheckCircle size={12} />
+													</button>
+												)}
+												{session.id !== currentSessionId && (
+													<button
+														onClick={() => handleTerminateSession(session.id)}
+														className="p-1 text-xs bg-red-100 text-red-800 rounded-md hover:bg-red-200 dark:bg-red-900/30 dark:text-red-300 dark:hover:bg-red-800/50"
+														title="Déconnecter"
+													>
+														<LogOut size={12} />
+													</button>
+												)}
+											</div>
 										</div>
 									</div>
-								</div>
-							))}
+								);
+							})}
 						</div>
 
 						{sessions.length > 1 && (
@@ -698,91 +749,95 @@ const SessionManager = ({ userId, compact = false }) => {
 				) : (
 					<div className="space-y-4">
 						{sessions.length > 0 ? (
-							sessions.map((session) => (
-								<div
-									key={session.id}
-									className={`p-4 rounded-lg border ${
-										session.id === currentSessionId
-											? "bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800"
-											: session.is_suspicious
-											? "bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800"
-											: "bg-gray-50 dark:bg-gray-700 border-gray-200 dark:border-gray-600"
-									}`}
-								>
-									<div className="flex items-center justify-between">
-										<div className="flex items-center">
-											<div className="w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-600 flex items-center justify-center mr-3">
-												{getDeviceIcon(session)}
-											</div>
-											<div>
-												<div className="flex items-center">
-													<p className="font-medium text-gray-800 dark:text-gray-200">
-														{session.device_name || "Appareil inconnu"}
-														{session.id === currentSessionId &&
-															" (Session actuelle)"}
-													</p>
-													{session.is_suspicious && (
-														<span className="ml-2 px-2 py-0.5 bg-yellow-100 text-yellow-800 text-xs rounded-full dark:bg-yellow-900 dark:text-yellow-300">
-															Nouvelle connexion
-														</span>
-													)}
-												</div>
-												<div className="flex items-center text-sm text-gray-500 dark:text-gray-400">
-													<Clock size={14} className="mr-1" />
-													{session.id === currentSessionId
-														? `Durée de session: ${currentDuration}`
-														: `Dernière activité: ${formatTimeSince(
-																session.last_active
-														  )}`}
+							sessions.map((session) => {
+								const isOwnSession = session.user_id === userId;
 
-													{session.location && (
-														<>
-															<span className="mx-2">•</span>
-															<MapPin size={14} className="mr-1" />
-															<span>{session.location}</span>
-														</>
-													)}
+								return (
+									<div
+										key={session.id}
+										className={`p-4 rounded-lg border ${
+											session.id === currentSessionId
+												? "bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800"
+												: session.is_suspicious
+												? "bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800"
+												: "bg-gray-50 dark:bg-gray-700 border-gray-200 dark:border-gray-600"
+										}`}
+									>
+										<div className="flex items-center justify-between">
+											<div className="flex items-center">
+												<div className="w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-600 flex items-center justify-center mr-3">
+													{getDeviceIcon(session)}
 												</div>
+												<div>
+													<div className="flex items-center">
+														<p className="font-medium text-gray-800 dark:text-gray-200">
+															{session.device_name || "Appareil inconnu"}
+															{session.id === currentSessionId &&
+																" (Session actuelle)"}
+														</p>
+														{session.is_suspicious && (
+															<span className="ml-2 px-2 py-0.5 bg-yellow-100 text-yellow-800 text-xs rounded-full dark:bg-yellow-900 dark:text-yellow-300">
+																Nouvelle connexion
+															</span>
+														)}
+													</div>
+													<div className="flex items-center text-sm text-gray-500 dark:text-gray-400">
+														<Clock size={14} className="mr-1" />
+														{session.id === currentSessionId
+															? `Durée de session: ${currentDuration}`
+															: `Dernière activité: ${formatTimeSince(
+																	session.last_active
+															  )}`}
+
+														{session.location && (
+															<>
+																<span className="mx-2">•</span>
+																<MapPin size={14} className="mr-1" />
+																<span>{session.location}</span>
+															</>
+														)}
+													</div>
+												</div>
+											</div>
+
+											<div className="flex items-center">
+												{session.is_suspicious && isOwnSession && (
+													<button
+														onClick={() => handleTrustSession(session.id)}
+														className="p-2 rounded-full hover:bg-green-100 dark:hover:bg-green-900/50 text-green-600 dark:text-green-400 mr-2"
+														title="Marquer comme fiable"
+													>
+														<CheckCircle size={18} />
+													</button>
+												)}
+												<button
+													onClick={() =>
+														setExpandedSession(
+															expandedSession === session.id ? null : session.id
+														)
+													}
+													className="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-500 dark:text-gray-400 mr-2"
+													title="Détails"
+												>
+													<Info size={18} />
+												</button>
+
+												{session.id !== currentSessionId && (
+													<button
+														onClick={() => handleTerminateSession(session.id)}
+														className="px-3 py-1 bg-red-100 text-red-800 text-sm font-medium rounded-md hover:bg-red-200 dark:bg-red-900/30 dark:text-red-300 dark:hover:bg-red-800/50"
+													>
+														Déconnecter
+													</button>
+												)}
 											</div>
 										</div>
 
-										<div className="flex items-center">
-											{session.is_suspicious && (
-												<button
-													onClick={() => handleTrustSession(session.id)}
-													className="p-2 rounded-full hover:bg-green-100 dark:hover:bg-green-900/50 text-green-600 dark:text-green-400 mr-2"
-													title="Marquer comme fiable"
-												>
-													<CheckCircle size={18} />
-												</button>
-											)}
-											<button
-												onClick={() =>
-													setExpandedSession(
-														expandedSession === session.id ? null : session.id
-													)
-												}
-												className="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-500 dark:text-gray-400 mr-2"
-												title="Détails"
-											>
-												<Info size={18} />
-											</button>
-
-											{session.id !== currentSessionId && (
-												<button
-													onClick={() => handleTerminateSession(session.id)}
-													className="px-3 py-1 bg-red-100 text-red-800 text-sm font-medium rounded-md hover:bg-red-200 dark:bg-red-900/30 dark:text-red-300 dark:hover:bg-red-800/50"
-												>
-													Déconnecter
-												</button>
-											)}
-										</div>
+										{expandedSession === session.id &&
+											renderSessionDetails(session)}
 									</div>
-
-									{expandedSession === session.id &&
-										renderSessionDetails(session)}
-								</div>
-							))
+								);
+							})
 						) : (
 							<div className="text-center py-8 text-gray-500 dark:text-gray-400">
 								Aucune session active trouvée

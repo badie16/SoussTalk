@@ -215,7 +215,7 @@ const Stories = () => {
 				} else {
 					throw new Error("Échec de l'upload du média");
 				}
-				type = selectedFile.type.includes("video") ? "video" : "photo";
+				type = selectedFile.type.includes("video") ? "video" : "image";
 			}
 
 			const storyData = {

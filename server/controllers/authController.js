@@ -1,9 +1,8 @@
 const e = require("express");
 const authService = require("../services/authService");
 
-
 const signup = async (req, res) => {
-	console.log(req.body)
+	console.log(req.body);
 	try {
 		// Validation simple des champs requis
 		const { username, email, password, first_name, last_name, gender } =
