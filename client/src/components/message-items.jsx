@@ -226,7 +226,14 @@ const MessageItem = ({
 
 						{/* Reactions picker */}
 						{showReactions && (
-							<div className="absolute top-full mt-1 left-0 bg-white dark:bg-gray-800 rounded-lg shadow-lg p-2 flex space-x-1 z-10">
+							<div
+								
+								className={`absolute top-0 ${
+									!isOwn
+										? "left-0 "
+										: "right-0 "
+								}	absolute top-full mt-1 bg-white dark:bg-gray-800 rounded-lg shadow-lg p-2 flex space-x-1 z-10 `}
+							>
 								{reactions.map((emoji) => (
 									<button
 										key={emoji}
@@ -246,7 +253,7 @@ const MessageItem = ({
 
 				{/* Message reactions */}
 				{message.reactions && message.reactions.length > 0 && (
-					<div className="flex flex-wrap gap-1 mt-1">
+					<div className="flex flex-wrap gap-1 mt-1 ">
 						{message.reactions
 							.reduce((acc, reaction) => {
 								const existing = acc.find((r) => r.emoji === reaction.emoji);
