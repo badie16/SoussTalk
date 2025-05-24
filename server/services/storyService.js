@@ -1,6 +1,5 @@
-const { Console } = require("console");
 const supabase = require("../config/supabase");
-
+const { v4: uuidv4 } = require('uuid');
 exports.createStory = async (
 	user_id,
 	media_url,
@@ -32,9 +31,29 @@ exports.createStory = async (
 	if (error) throw new Error(error.message);
 	return data;
 };
-// exports.uploadMedia = async({
+exports.uploadMedia = async (file) => {
+	if (!file) throw new Error('No file provided');
 
-// })
+	const ext = file.originalname.split('.').pop();
+	const filename = `story-${Date.now()}-${uuidv4()}.${ext}`;
+	const path = `stories/${filename}`;
+
+	const { error } = await supabase.storage
+		.from('media') // le bucket Supabase s'appelle 'media'
+		.upload(path, file.buffer, {
+			contentType: file.mimetype,
+		});
+
+	if (error) throw error;
+
+	// Récupérer l'URL publique
+	const { data: publicUrlData } = supabase.storage
+		.from('media')
+		.getPublicUrl(path);
+
+	return publicUrlData.publicUrl;
+};
+
 // Récupérer les stories actives des amis de l'utilisateur
 exports.getFriendsStories = async (userId) => {
 	try {

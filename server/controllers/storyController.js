@@ -2,14 +2,14 @@ const storyService = require("../services/storyService");
 
 exports.createStory = async (req, res) => {
 	try {
-		const { user_id, media_url, type, caption, background } = req.body;		
+		const { user_id, media_url, type, caption, background } = req.body;
 		// Vérifier que l'utilisateur authentifié est bien celui qui crée la story
 		if (req.user.id !== user_id) {
 			return res.status(403).json({
 				error:
 					"Vous n'êtes pas autorisé à créer une story pour un autre utilisateur",
 			});
-		}		
+		}
 		const story = await storyService.createStory(
 			user_id,
 			media_url,
@@ -23,6 +23,19 @@ exports.createStory = async (req, res) => {
 	}
 };
 
+// Uploader une story
+exports.uploadMedia = async (req, res) => {
+	try {
+		if (!req.file) {
+			return res.status(400).json({ error: "Aucun fichier fourni." });
+		}
+		const publicUrl = await storyService.uploadMedia(req.file);
+		res.status(200).json({ url: publicUrl });
+	} catch (error) {
+		console.error("Erreur lors de l'upload:", error.message);
+		res.status(500).json({ error: "Échec de l'upload du fichier." });
+	}
+};
 // Récupérer les stories des amis
 exports.getFriendsStories = async (req, res) => {
 	try {
@@ -119,7 +132,7 @@ exports.getViewedStories = async (req, res) => {
 	console.log("ddd")
 	try {
 		const userId = req.user.id; // Récupéré du middleware d'authentification
-		
+
 		const stories = await storyService.getViewedStories(userId);
 		res.json(stories);
 	} catch (error) {

@@ -8,8 +8,10 @@ const upload = require("../middleware/upload");
 router.use(protect);
 
 // Créer une story (avec upload si nécessaire)
-router.post("/", upload.single("media"), storyController.createStory);
+router.post("/", storyController.createStory);
 
+// Uploader une story
+router.post("/upload", upload.single("media"), storyController.uploadMedia);
 // Récupérer les stories actives des amis
 router.get("/friends", storyController.getFriendsStories);
 
