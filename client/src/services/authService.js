@@ -8,17 +8,17 @@ axios.interceptors.response.use(
 	(error) => {
 		// Si l'erreur est liée à un problème de réseau, rediriger vers la page d'erreur de connexion
 		// mais ne pas supprimer les données d'authentification
-		if (!error.response) {
-			console.log(
-				"Erreur de connexion détectée, redirection vers la page d'erreur"
-			);
-			// Stocker l'URL actuelle pour pouvoir y revenir après la reconnexion
-			sessionStorage.setItem("lastPath", window.location.pathname);
-			window.location.href = "/connection-error";
-			// Retourner une promesse rejetée pour éviter que le code continue
-			return Promise.reject(new Error("Erreur de connexion réseau"));
-		}
-		return Promise.reject(error);
+		// if (!error.response) {
+		// 	console.log(
+		// 		"Erreur de connexion détectée, redirection vers la page d'erreur"
+		// 	);
+		// 	// Stocker l'URL actuelle pour pouvoir y revenir après la reconnexion
+		// 	sessionStorage.setItem("lastPath", window.location.pathname);
+		// 	window.location.href = "/connection-error";
+		// 	// Retourner une promesse rejetée pour éviter que le code continue
+		// 	return Promise.reject(new Error("Erreur de connexion réseau"));
+		// }
+		// return Promise.reject(error);
 	}
 );
 
