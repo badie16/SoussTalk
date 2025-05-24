@@ -1,0 +1,69 @@
+/* Styles de base pour les thèmes */
+:root {
+  --primary-color: #10b981;
+  --primary-hover: #059669;
+  --text-primary: #111827;
+  --text-secondary: #4b5563;
+  --bg-primary: #ffffff;
+  --bg-secondary: #f3f4f6;
+  --border-color: #e5e7eb;
+  --shadow-color: rgba(0, 0, 0, 0.1);
+}
+
+/* Thème sombre */
+.dark {
+  --primary-color: #10b981;
+  --primary-hover: #34d399;
+  --text-primary: #f9fafb;
+  --text-secondary: #d1d5db;
+  --bg-primary: #1f2937;
+  --bg-secondary: #111827;
+  --border-color: #374151;
+  --shadow-color: rgba(0, 0, 0, 0.3);
+}
+
+/* Appliquer les variables de couleur aux éléments */
+.theme-light,
+.theme-dark {
+  color: var(--text-primary);
+  background-color: var(--bg-primary);
+}
+
+/* Styles pour les éléments communs */
+.themed-page {
+  min-height: 100vh;
+  transition: background-color 0.3s, color 0.3s;
+}
+
+/* Styles pour les cartes et conteneurs */
+.themed-card {
+  background-color: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  box-shadow: 0 4px 6px var(--shadow-color);
+}
+
+/* Styles pour les boutons */
+.themed-button {
+  background-color: var(--primary-color);
+  color: white;
+}
+
+.themed-button:hover {
+  background-color: var(--primary-hover);
+}
+
+/* Styles pour les entrées */
+.themed-input {
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+}
+
+/* Styles pour les textes */
+.themed-text-primary {
+  color: var(--text-primary);
+}
+
+.themed-text-secondary {
+  color: var(--text-secondary);
+}
