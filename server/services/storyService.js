@@ -32,7 +32,9 @@ exports.createStory = async (
 	if (error) throw new Error(error.message);
 	return data;
 };
+// exports.uploadMedia = async({
 
+// })
 // Récupérer les stories actives des amis de l'utilisateur
 exports.getFriendsStories = async (userId) => {
 	try {

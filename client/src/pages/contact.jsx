@@ -10,7 +10,6 @@ import {
 	UserPlus,
 	MoreVertical,
 	X,
-	Check,
 	User,
 } from "lucide-react";
 import "../index.css";
@@ -19,9 +18,10 @@ import {
 	getFriends,
 	searchFriends,
 	removeFriend,
-	startChat,
 	startCall,
 } from "../services/friendService";
+import messageService from "../services/messageService";
+import { createNotification } from "../components/notifications";
 
 const Contacts = () => {
 	const navigate = useNavigate();
@@ -108,19 +108,53 @@ const Contacts = () => {
 		}
 	};
 
-	// Démarrer un chat avec un ami
+	// Démarrer un chat avec un ami - AMÉLIORÉ
 	const handleStartChat = async (friend) => {
 		if (!currentUser) return;
 
 		try {
-			const response = await startChat(currentUser.id, friend.id);
-			if (response.success) {
-				navigate("/chat", { state: { selectedChat: response.data } });
-			} else {
-				console.error("Échec du démarrage du chat:", response.message);
-			}
+			// Créer ou récupérer la conversation
+			const conversation = await messageService.createPrivateConversation(
+				friend.id
+			);
+
+			// Préparer les données de la conversation
+			const chatData = {
+				id: conversation.id,
+				name: friend.name,
+				avatar: friend.avatar_url,
+				isGroup: false,
+				userId: friend.id,
+				online: friend.is_online,
+			};
+
+			// Créer une notification de succès
+			createNotification(
+				"message",
+				"Conversation ouverte",
+				`Conversation avec ${friend.name} ouverte`,
+				{
+					friendId: friend.id,
+				}
+			);
+
+			// Rediriger vers la page de chat avec la conversation sélectionnée
+			navigate("/chat", {
+				state: {
+					selectedChat: chatData,
+					autoSelect: true,
+				},
+			});
 		} catch (error) {
-			console.error("Erreur lors du démarrage du chat:", error);
+			console.error("Échec du démarrage du chat:", error);
+
+			// Créer une notification d'erreur
+			createNotification(
+				"error",
+				"Erreur",
+				"Impossible d'ouvrir la conversation. Veuillez réessayer.",
+				{}
+			);
 		}
 	};
 
@@ -133,6 +167,15 @@ const Contacts = () => {
 			if (response.success) {
 				// Rediriger vers la page d'appel ou afficher une interface d'appel
 				console.log("Appel démarré:", response.data);
+
+				// Créer une notification
+				createNotification(
+					"call",
+					`Appel ${isVideo ? "vidéo" : "audio"}`,
+					`Appel ${isVideo ? "vidéo" : "audio"} avec ${friend.name} démarré`,
+					{ friendId: friend.id, isVideo }
+				);
+
 				// Pour l'instant, nous affichons juste une alerte
 				alert(
 					`Démarrage d'un appel ${isVideo ? "vidéo" : "audio"} avec ${
@@ -164,6 +207,16 @@ const Contacts = () => {
 						setSelectedFriend(null);
 						setShowProfileModal(false);
 					}
+
+					// Créer une notification
+					createNotification(
+						"friend_request",
+						"Ami supprimé",
+						`${friend.name} a été supprimé de vos amis`,
+						{
+							friendId: friend.id,
+						}
+					);
 				} else {
 					console.error("Échec de la suppression de l'ami:", response.message);
 				}
