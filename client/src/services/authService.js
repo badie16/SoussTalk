@@ -39,7 +39,7 @@ export const getCurrentUser = () => {
 export const login = async (formData) => {
 	try {
 		
-		const response = await axios.post(`${API_URL}/api/auth/login`, formData);
+		const response = await axios.post(`${API_URL}/api/auth/login`, formData) ;
 
 		// Store the token and user data
 		localStorage.setItem("token", response.data.token);
