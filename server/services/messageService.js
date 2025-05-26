@@ -589,7 +589,6 @@ exports.addOrUpdateReaction = async (messageId, userId, emoji) => {
 			// PGRST116 = not found, c'est normal si rien n'existe encore
 			throw new Error(fetchError.message);
 		}
-
 		if (existingReaction) {
 			if (existingReaction.emoji === emoji) {
 				// Même réaction, on peut décider soit de ne rien faire, soit supprimer (toggle off)
@@ -605,7 +604,7 @@ exports.addOrUpdateReaction = async (messageId, userId, emoji) => {
 				// Différente réaction => update avec la nouvelle emoji
 				const { data: updatedData, error: updateError } = await supabase
 					.from("message_reactions")
-					.update({ emoji: emoji, updated_at: new Date().toISOString() })
+					.update({ emoji: emoji })
 					.eq("id", existingReaction.id)
 					.select()
 					.single();

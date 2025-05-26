@@ -12,7 +12,7 @@ import {
 import MessageList from "./message-list";
 import MessageInput from "./message-input";
 import messageService from "../services/messageService";
-
+import logo from "../assets/logo.png"
 const ChatDetail = ({ chat, onBack, currentUserId }) => {
 	const [messages, setMessages] = useState([]);
 	const [isLoading, setIsLoading] = useState(false);
@@ -308,21 +308,8 @@ const ChatDetail = ({ chat, onBack, currentUserId }) => {
 		return (
 			<div className="flex-1 p-6 overflow-y-auto show-scrollbar-on-hover flex items-center justify-center h-full">
 				<div className="text-center max-w-md w-full">
-					<div className="mx-auto w-24 h-24 bg-green-100 rounded-full flex items-center justify-center mb-6">
-						<svg
-							xmlns="http://www.w3.org/2000/svg"
-							width="48"
-							height="48"
-							viewBox="0 0 24 24"
-							fill="none"
-							stroke="currentColor"
-							strokeWidth="2"
-							strokeLinecap="round"
-							strokeLinejoin="round"
-							className="text-green-600"
-						>
-							<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
-						</svg>
+					<div className="mx-auto w-28 h-28 bg-green-100 rounded-full flex items-center justify-center mb-6">
+						<img className="w-4/5" src={logo}></img>
 					</div>
 
 					<h1 className="text-2xl font-semibold text-gray-200 mb-4">
@@ -333,10 +320,6 @@ const ChatDetail = ({ chat, onBack, currentUserId }) => {
 						Select a chat from the sidebar or start a new conversation to begin
 						messaging.
 					</p>
-
-					<button className="bg-green-600 hover:bg-green-700 text-white px-8 py-2 rounded-md transition-all duration-300 hover:shadow-lg transform hover:-translate-y-1">
-						Start New Chat
-					</button>
 				</div>
 			</div>
 		);

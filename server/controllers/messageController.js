@@ -468,12 +468,16 @@ exports.addReaction = async (req, res) => {
 		const { messageId } = req.params;
 		const { emoji } = req.body;
 		const userId = req.user.id;
+		console.log(emoji);
 
 		if (!emoji) {
 			return res.status(400).json({ error: "Emoji is required" });
 		}
-
-		const result = await messageService.addReaction(messageId, userId, emoji);
+		const result = await messageService.addOrUpdateReaction(
+			messageId,
+			userId,
+			emoji
+		);
 
 		// Émettre la réaction via Socket.io
 		// Obtenir la conversation pour notifier les membres

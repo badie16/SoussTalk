@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { useState, useEffect } from "react";
-
+import logo from "../assets/logo.png";
 const SideNav = ({ activeIcon, onIconClick }) => {
 	const [profileImage, setProfileImage] = useState("/placeholder.svg");
 
@@ -19,21 +19,8 @@ const SideNav = ({ activeIcon, onIconClick }) => {
 		<div className="fixed left-0 top-0 bottom-0 w-[60px] bg-[#1e1e1e] flex flex-col items-center py-6 z-10">
 			{/* Logo de l'application */}
 			<div className="mb-8">
-				<div className="w-10 h-10 bg-green-600 rounded-md flex items-center justify-center transition-transform hover:scale-110 duration-300">
-					<svg
-						xmlns="http://www.w3.org/2000/svg"
-						width="20"
-						height="20"
-						viewBox="0 0 24 24"
-						fill="none"
-						stroke="currentColor"
-						strokeWidth="2"
-						strokeLinecap="round"
-						strokeLinejoin="round"
-						className="text-white"
-					>
-						<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
-					</svg>
+				<div className="w-10 h-10 bg-green-100 border-green-600 border-spacing-2 rounded-md flex items-center justify-center transition-transform hover:scale-110 duration-300">
+					<img className="w-4/5" src={logo}></img>
 				</div>
 			</div>
 
@@ -67,9 +54,8 @@ const SideNav = ({ activeIcon, onIconClick }) => {
 					icon="phone"
 					active={activeIcon === "phone"}
 					onClick={() => onIconClick && onIconClick("phone")}
-					to="/calls"	
+					to="/calls"
 				/>
-				
 			</div>
 
 			{/* Basculement de thème */}
