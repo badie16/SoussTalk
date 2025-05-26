@@ -26,15 +26,15 @@ const allowedOrigins = [
 ];
 const corsOptions = {
 	origin: function (origin, callback) {
-		// Autoriser les requêtes sans origin (ex : Postman, certains navigateurs)
-		if (!origin) return callback(null, true);
-		if (allowedOrigins.indexOf(origin) === -1) {
-			const msg = `L'origine CORS ${origin} n'est pas autorisée.`;
-			return callback(new Error(msg), false);
+		// Permet les requêtes sans origin (ex: Postman) ou celles autorisées
+		if (!origin || allowedOrigins.includes(origin)) {
+			callback(null, true);
+		} else {
+			callback(new Error(`CORS policy: Origin ${origin} not allowed`));
 		}
-		return callback(null, true);
 	},
-	credentials: true,
+	credentials: true, // pour autoriser l'envoi des cookies, etc.
+	methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"], // méthodes acceptées
 };
 
 // Configuration CORS pour Socket.io
