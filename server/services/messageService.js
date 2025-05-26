@@ -575,43 +575,61 @@ exports.editMessage = async (messageId, userId, newContent) => {
 		throw new Error(`Error editing message: ${error.message}`);
 	}
 };
-
-exports.addReaction = async (messageId, userId, emoji) => {
+exports.addOrUpdateReaction = async (messageId, userId, emoji) => {
 	try {
-		// Vérifier si la réaction existe déjà
-		const { data: existingReaction } = await supabase
+		// Chercher la réaction existante (user + message)
+		const { data: existingReaction, error: fetchError } = await supabase
 			.from("message_reactions")
 			.select("*")
 			.eq("message_id", messageId)
 			.eq("user_id", userId)
-			.eq("emoji", emoji)
 			.single();
 
+		if (fetchError && fetchError.code !== "PGRST116") {
+			// PGRST116 = not found, c'est normal si rien n'existe encore
+			throw new Error(fetchError.message);
+		}
+
 		if (existingReaction) {
-			// Supprimer la réaction si elle existe déjà
-			const { error } = await supabase
-				.from("message_reactions")
-				.delete()
-				.eq("id", existingReaction.id);
+			if (existingReaction.emoji === emoji) {
+				// Même réaction, on peut décider soit de ne rien faire, soit supprimer (toggle off)
+				// Ici on supprime pour toggle off
+				const { error: deleteError } = await supabase
+					.from("message_reactions")
+					.delete()
+					.eq("id", existingReaction.id);
 
-			if (error) throw new Error(error.message);
-			return { action: "removed", messageId, emoji, userId };
+				if (deleteError) throw new Error(deleteError.message);
+				return { action: "removed", messageId, emoji, userId };
+			} else {
+				// Différente réaction => update avec la nouvelle emoji
+				const { data: updatedData, error: updateError } = await supabase
+					.from("message_reactions")
+					.update({ emoji: emoji, updated_at: new Date().toISOString() })
+					.eq("id", existingReaction.id)
+					.select()
+					.single();
+
+				if (updateError) throw new Error(updateError.message);
+				return { action: "updated", reaction: updatedData };
+			}
 		} else {
-			// Ajouter la nouvelle réaction
-			const { data, error } = await supabase.from("message_reactions").insert([
-				{
-					message_id: messageId,
-					user_id: userId,
-					emoji: emoji,
-					created_at: new Date().toISOString(),
-				},
-			]).select(`
-          *,
-          user:users(id, username, first_name, last_name)
-        `);
+			// Pas de réaction existante, on insère
+			const { data: insertedData, error: insertError } = await supabase
+				.from("message_reactions")
+				.insert([
+					{
+						message_id: messageId,
+						user_id: userId,
+						emoji: emoji,
+						created_at: new Date().toISOString(),
+					},
+				])
+				.select()
+				.single();
 
-			if (error) throw new Error(error.message);
-			return { action: "added", reaction: data[0] };
+			if (insertError) throw new Error(insertError.message);
+			return { action: "added", reaction: insertedData };
 		}
 	} catch (error) {
 		throw new Error(`Error managing reaction: ${error.message}`);

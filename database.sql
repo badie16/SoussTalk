@@ -45,7 +45,6 @@ create table public.stories (
     )
   )
 ) TABLESPACE pg_default;
-
 create table public.story_reactions (
   id uuid not null default gen_random_uuid (),
   created_at timestamp with time zone not null default now(),
@@ -56,7 +55,6 @@ create table public.story_reactions (
   constraint story_reactions_story_id_fkey foreign KEY (story_id) references stories (id) on delete CASCADE,
   constraint story_reactions_user_id_fkey foreign KEY (user_id) references users (id) on delete CASCADE
 ) TABLESPACE pg_default;
-
 create table public.sessions (
   id uuid not null default gen_random_uuid (),
   user_id uuid null,
@@ -78,7 +76,6 @@ create table public.sessions (
   constraint sessions_pkey primary key (id),
   constraint sessions_user_id_fkey foreign KEY (user_id) references users (id) on delete CASCADE
 ) TABLESPACE pg_default;
-
 create table public.notifications (
   id uuid not null default gen_random_uuid (),
   user_id uuid null,
@@ -89,7 +86,6 @@ create table public.notifications (
   constraint notifications_pkey primary key (id),
   constraint notifications_user_id_fkey foreign KEY (user_id) references users (id) on delete CASCADE
 ) TABLESPACE pg_default;
-
 create table public.messages (
   id uuid not null default gen_random_uuid (),
   conversation_id uuid null,
@@ -103,7 +99,6 @@ create table public.messages (
   constraint messages_conversation_id_fkey foreign KEY (conversation_id) references conversations (id) on delete CASCADE,
   constraint messages_sender_id_fkey foreign KEY (sender_id) references users (id)
 ) TABLESPACE pg_default;
-
 create table public.friendships (
   id uuid not null default gen_random_uuid (),
   user1_id uuid null,
@@ -114,7 +109,6 @@ create table public.friendships (
   constraint friendships_user1_id_fkey foreign KEY (user1_id) references users (id) on delete CASCADE,
   constraint friendships_user2_id_fkey foreign KEY (user2_id) references users (id) on delete CASCADE
 ) TABLESPACE pg_default;
-
 create table public.friend_requests (
   id uuid not null default gen_random_uuid (),
   sender_id uuid null,
@@ -125,7 +119,6 @@ create table public.friend_requests (
   constraint friend_requests_receiver_id_fkey foreign KEY (receiver_id) references users (id) on delete CASCADE,
   constraint friend_requests_sender_id_fkey foreign KEY (sender_id) references users (id) on delete CASCADE
 ) TABLESPACE pg_default;
-
 create table public.emotion_logs (
   id uuid not null default gen_random_uuid (),
   message_id uuid null,
@@ -135,7 +128,6 @@ create table public.emotion_logs (
   constraint emotion_logs_pkey primary key (id),
   constraint emotion_logs_message_id_fkey foreign KEY (message_id) references messages (id) on delete CASCADE
 ) TABLESPACE pg_default;
-
 create table public.files (
   id uuid not null default gen_random_uuid (),
   uploader_id uuid null,
@@ -147,7 +139,6 @@ create table public.files (
   constraint files_message_id_fkey foreign KEY (message_id) references messages (id),
   constraint files_uploader_id_fkey foreign KEY (uploader_id) references users (id)
 ) TABLESPACE pg_default;
-
 create table public.story_views (
   id uuid not null default gen_random_uuid (),
   created_at timestamp with time zone not null default now(),
@@ -157,7 +148,6 @@ create table public.story_views (
   constraint story_views_story_id_fkey foreign KEY (story_id) references stories (id) on delete CASCADE,
   constraint story_views_user_id_fkey foreign KEY (user_id) references users (id) on delete CASCADE
 ) TABLESPACE pg_default;
-
 create table public.conversation_members (
   conversation_id uuid not null,
   user_id uuid not null,
@@ -166,7 +156,6 @@ create table public.conversation_members (
   constraint conversation_members_conversation_id_fkey foreign KEY (conversation_id) references conversations (id) on delete CASCADE,
   constraint conversation_members_user_id_fkey foreign KEY (user_id) references users (id) on delete CASCADE
 ) TABLESPACE pg_default;
-
 create table public.conversations (
   id uuid not null default gen_random_uuid (),
   is_group boolean null default false,
@@ -174,3 +163,18 @@ create table public.conversations (
   created_at timestamp without time zone null default CURRENT_TIMESTAMP,
   constraint conversations_pkey primary key (id)
 ) TABLESPACE pg_default;
+create table public.message_reactions (
+  id uuid not null default gen_random_uuid (),
+  message_id uuid null,
+  user_id uuid null,
+  emoji character varying(10) not null,
+  created_at timestamp without time zone null default now(),
+  constraint message_reactions_pkey primary key (id),
+  constraint message_reactions_message_id_user_id_emoji_key unique (message_id, user_id, emoji),
+  constraint unique_user_message unique (user_id, message_id),
+  constraint message_reactions_message_id_fkey foreign KEY (message_id) references messages (id) on delete CASCADE,
+  constraint message_reactions_user_id_fkey foreign KEY (user_id) references users (id) on delete CASCADE
+) TABLESPACE pg_default;
+
+create index IF not exists idx_message_reactions_message on public.message_reactions using btree (message_id) TABLESPACE pg_default;
+
