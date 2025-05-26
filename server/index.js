@@ -21,7 +21,7 @@ const { setupMessageSocket } = require("./sockets/messageSocket");
 const app = express();
 const server = http.createServer(app);
 const allowedOrigins = [
-	process.env.CLIENT_URL || "https://sousstalk.vercel.app/",
+	process.env.CLIENT_URL || "https://sousstalk.vercel.app",
 	"http://localhost:5173",
 ];
 const corsOptions = {
