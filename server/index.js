@@ -20,29 +20,56 @@ const { setupMessageSocket } = require("./sockets/messageSocket");
 
 const app = express();
 const server = http.createServer(app);
-const allowedOrigins = [
-	process.env.CLIENT_URL || "https://sousstalk.vercel.app",
-	"http://localhost:5173",
-];
+
 const corsOptions = {
-	origin: function (origin, callback) {
-		// Permet les requêtes sans origin (ex: Postman) ou celles autorisées
-		if (!origin || allowedOrigins.includes(origin)) {
+	origin: (origin, callback) => {
+		// Allow requests with no origin (mobile apps, Postman, etc.)
+		if (!origin) return callback(null, true);
+
+		const allowedOrigins = [
+			"http://localhost:3000",
+			"http://localhost:5173",
+			"http://localhost:4173",
+			"https://sousstalk.vercel.app",
+			"https://sousstalk-client.vercel.app",
+			process.env.CLIENT_URL,
+		].filter(Boolean);
+
+		if (allowedOrigins.includes(origin)) {
 			callback(null, true);
 		} else {
-			callback(new Error(`CORS policy: Origin ${origin} not allowed`));
+			console.log("CORS blocked origin:", origin);
+			callback(new Error("Not allowed by CORS"));
 		}
 	},
-	credentials: true, // pour autoriser l'envoi des cookies, etc.
-	methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"], // méthodes acceptées
+	credentials: true,
+	methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
+	allowedHeaders: [
+		"Origin",
+		"X-Requested-With",
+		"Content-Type",
+		"Accept",
+		"Authorization",
+		"Cache-Control",
+		"X-Access-Token",
+	],
+	exposedHeaders: ["set-cookie"],
+	maxAge: 86400, // 24 hours
 };
+app.use(cors(corsOptions));
 
+// Handle preflight requests
+// app.options("*", cors(corsOptions));
 // Configuration CORS pour Socket.io
 const io = socketIo(server, {
 	cors: corsOptions,
+	transports: ["websocket", "polling"],
+	allowEIO3: true,
+	pingTimeout: 60000,
+	pingInterval: 25000,
 });
 
-app.use(cors(corsOptions));
+
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true}));
@@ -144,7 +171,13 @@ io.on("connection", (socket) => {
 app.get("/", (req, res) => {
 	res.json({ message: "SoussTalk API is running!" });
 });
-
+app.get("/health", (req, res) => {
+	res.status(200).json({
+		status: "OK",
+		timestamp: new Date().toISOString(),
+		uptime: process.uptime(),
+	});
+});
 // Error handling middleware
 app.use((error, req, res, next) => {
 	console.error("Error:", error);

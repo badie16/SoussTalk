@@ -5,7 +5,40 @@ exports.setupMessageSocket = (socket, io) => {
 	// Rejoindre la room de l'utilisateur
 	socket.join(`user_${socket.user.id}`);
 
-	// Envoyer un message
+	// Rejoindre automatiquement toutes les conversations de l'utilisateur
+	socket.on("join_user_conversations", async () => {
+		try {
+			const conversations = await messageService.getUserConversations(
+				socket.user.id
+			);
+			conversations.forEach((conv) => {
+				socket.join(`conversation_${conv.id}`);
+			});
+
+			// Notifier que l'utilisateur est en ligne
+			socket.broadcast.emit("user_status_changed", {
+				userId: socket.user.id,
+				isOnline: true,
+				lastSeen: new Date().toISOString(),
+			});
+		} catch (error) {
+			console.error("Error joining user conversations:", error);
+		}
+	});
+
+	// Rejoindre une conversation spécifique
+	socket.on("join_conversation", (conversationId) => {
+		socket.join(`conversation_${conversationId}`);
+		console.log(`User ${socket.user.id} joined conversation ${conversationId}`);
+	});
+
+	// Quitter une conversation
+	socket.on("leave_conversation", (conversationId) => {
+		socket.leave(`conversation_${conversationId}`);
+		console.log(`User ${socket.user.id} left conversation ${conversationId}`);
+	});
+
+	// Envoyer un message avec notification améliorée
 	socket.on("send_message", async (data) => {
 		try {
 			const messageData = {
@@ -18,6 +51,17 @@ exports.setupMessageSocket = (socket, io) => {
 
 			const savedMessage = await messageService.createMessage(messageData);
 
+			// Enrichir le message avec les infos du sender
+			const enrichedMessage = {
+				...savedMessage,
+				conversationId: data.conversationId,
+				sender: {
+					id: socket.user.id,
+					username: socket.user.username,
+					name: socket.user.first_name || socket.user.username,
+				},
+			};
+
 			// Obtenir les membres de la conversation
 			const members = await messageService.getConversationMembers(
 				data.conversationId,
@@ -27,53 +71,40 @@ exports.setupMessageSocket = (socket, io) => {
 			// Envoyer le message aux autres membres
 			members.forEach((member) => {
 				if (member.id !== socket.user.id) {
-					io.to(`user_${member.id}`).emit("new_message", {
-						...savedMessage,
-						conversationId: data.conversationId,
-					});
+					io.to(`user_${member.id}`).emit("new_message", enrichedMessage);
 				}
 			});
 
 			// Confirmer l'envoi à l'expéditeur
-			socket.emit("message_sent", {
-				...savedMessage,
-				conversationId: data.conversationId,
-			});
+			socket.emit("message_sent", enrichedMessage);
+
+			// Mettre à jour la liste des conversations pour tous
+			io.to(`conversation_${data.conversationId}`).emit(
+				"conversation_updated",
+				{
+					conversationId: data.conversationId,
+					lastMessage: {
+						content: savedMessage.content,
+						timestamp: savedMessage.created_at,
+						senderName: socket.user.username,
+						messageType: savedMessage.message_type,
+					},
+				}
+			);
 		} catch (error) {
 			console.error("Erreur send_message:", error);
 			socket.emit("message_error", { error: error.message });
 		}
 	});
-	// Rejoindre une conversation
-	socket.on("join_conversation", (conversationId) => {
-		socket.join(`conversation_${conversationId}`);
-	});
 
-	// Quitter une conversation
-	socket.on("leave_conversation", (conversationId) => {
-		socket.leave(`conversation_${conversationId}`);
-	});
-	// Rejoindre les conversations de l'utilisateur
-	socket.on("join_user_conversations", async () => {
-		try {
-			const conversations = await messageService.getUserConversations(
-				socket.user.id
-			);
-			conversations.forEach((conv) => {
-				socket.join(`conversation_${conv.id}`);
-			});
-		} catch (error) {
-			console.error("Error joining user conversations:", error);
-		}
-	});
-
-	// Indicateur de frappe
+	// Indicateur de frappe amélioré
 	socket.on("typing_start", async (data) => {
 		try {
 			const members = await messageService.getConversationMembers(
 				data.conversationId,
 				socket.user.id
 			);
+
 			members.forEach((member) => {
 				if (member.id !== socket.user.id) {
 					io.to(`user_${member.id}`).emit("user_typing", {
@@ -87,12 +118,14 @@ exports.setupMessageSocket = (socket, io) => {
 			console.error("Erreur typing_start:", error);
 		}
 	});
+
 	socket.on("typing_stop", async (data) => {
 		try {
 			const members = await messageService.getConversationMembers(
 				data.conversationId,
 				socket.user.id
 			);
+
 			members.forEach((member) => {
 				if (member.id !== socket.user.id) {
 					io.to(`user_${member.id}`).emit("user_stopped_typing", {
@@ -106,7 +139,7 @@ exports.setupMessageSocket = (socket, io) => {
 		}
 	});
 
-	// Marquer les messages comme lus
+	// Marquer les messages comme lus avec notification
 	socket.on("mark_messages_read", async (data) => {
 		try {
 			await messageService.markMessagesAsRead(
@@ -119,6 +152,7 @@ exports.setupMessageSocket = (socket, io) => {
 				data.conversationId,
 				socket.user.id
 			);
+
 			members.forEach((member) => {
 				if (member.id !== socket.user.id) {
 					io.to(`user_${member.id}`).emit("messages_read", {
@@ -132,45 +166,59 @@ exports.setupMessageSocket = (socket, io) => {
 		}
 	});
 
-	// Réaction à un message
+	// Réaction à un message avec mise à jour temps réel
 	socket.on("add_reaction", async (data) => {
 		try {
-			const result = await messageService.addReaction(
+			const result = await messageService.addOrUpdateReaction(
 				data.messageId,
 				socket.user.id,
 				data.emoji
 			);
 
-			// Diffuser la réaction à tous les participants de la conversation
-			const members = await messageService.getConversationMembers(
-				data.conversationId,
-				socket.user.id
-			);
-			members.forEach((member) => {
-				io.to(`user_${member.id}`).emit("message_reaction", {
-					messageId: data.messageId,
-					userId: socket.user.id,
-					emoji: data.emoji,
-					action: result.action,
-					conversationId: data.conversationId,
+			// Obtenir la conversation pour notifier les membres
+			const { data: message } = await supabase
+				.from("messages")
+				.select("conversation_id")
+				.eq("id", data.messageId)
+				.single();
+
+			if (message) {
+				const members = await messageService.getConversationMembers(
+					message.conversation_id,
+					socket.user.id
+				);
+
+				// Diffuser la réaction à tous les participants
+				members.forEach((member) => {
+					io.to(`user_${member.id}`).emit("message_reaction", {
+						messageId: data.messageId,
+						userId: socket.user.id,
+						emoji: data.emoji,
+						action: result.action,
+						conversationId: message.conversation_id,
+					});
 				});
-			});
+			}
 		} catch (error) {
 			console.error("Erreur add_reaction:", error);
 			socket.emit("reaction_error", { error: error.message });
 		}
 	});
 
-	// Suppression de message
+	// Suppression de message avec notification
 	socket.on("delete_message", async (data) => {
 		try {
-			await messageService.deleteMessage(data.messageId, socket.user.id);
+			const deletedMessage = await messageService.deleteMessage(
+				data.messageId,
+				socket.user.id
+			);
 
 			// Notifier tous les participants
 			const members = await messageService.getConversationMembers(
 				data.conversationId,
 				socket.user.id
 			);
+
 			members.forEach((member) => {
 				io.to(`user_${member.id}`).emit("message_deleted", {
 					messageId: data.messageId,
@@ -183,7 +231,7 @@ exports.setupMessageSocket = (socket, io) => {
 		}
 	});
 
-	// Modification de message
+	// Modification de message avec notification
 	socket.on("edit_message", async (data) => {
 		try {
 			const editedMessage = await messageService.editMessage(
@@ -197,6 +245,7 @@ exports.setupMessageSocket = (socket, io) => {
 				data.conversationId,
 				socket.user.id
 			);
+
 			members.forEach((member) => {
 				io.to(`user_${member.id}`).emit("message_edited", editedMessage);
 			});
@@ -206,10 +255,9 @@ exports.setupMessageSocket = (socket, io) => {
 		}
 	});
 
-	// Mise à jour du statut en ligne
+	// Mise à jour du statut en ligne améliorée
 	socket.on("update_online_status", async (isOnline) => {
 		try {
-			// Mettre à jour le statut dans la base de données
 			const { error } = await supabase
 				.from("users")
 				.update({
@@ -220,17 +268,21 @@ exports.setupMessageSocket = (socket, io) => {
 
 			if (error) throw error;
 
-			// Notifier les contacts de l'utilisateur
+			// Notifier tous les contacts
 			const conversations = await messageService.getUserConversations(
 				socket.user.id
 			);
 			const contactIds = new Set();
 
 			conversations.forEach((conv) => {
-				if (!conv.isGroup) {
+				if (!conv.isGroup && conv.userId) {
 					contactIds.add(conv.userId);
-				} else {
-					conv.members.forEach((member) => contactIds.add(member.id));
+				} else if (conv.isGroup && conv.members) {
+					conv.members.forEach((member) => {
+						if (member.id !== socket.user.id) {
+							contactIds.add(member.id);
+						}
+					});
 				}
 			});
 
@@ -246,7 +298,7 @@ exports.setupMessageSocket = (socket, io) => {
 		}
 	});
 
-	// Gestion de la déconnexion
+	// Gestion de la déconnexion améliorée
 	socket.on("disconnect", async () => {
 		try {
 			// Marquer l'utilisateur comme hors ligne
@@ -260,17 +312,21 @@ exports.setupMessageSocket = (socket, io) => {
 
 			if (error) throw error;
 
-			// Notifier les contacts
+			// Notifier tous les contacts
 			const conversations = await messageService.getUserConversations(
 				socket.user.id
 			);
 			const contactIds = new Set();
 
 			conversations.forEach((conv) => {
-				if (!conv.isGroup) {
+				if (!conv.isGroup && conv.userId) {
 					contactIds.add(conv.userId);
-				} else {
-					conv.members.forEach((member) => contactIds.add(member.id));
+				} else if (conv.isGroup && conv.members) {
+					conv.members.forEach((member) => {
+						if (member.id !== socket.user.id) {
+							contactIds.add(member.id);
+						}
+					});
 				}
 			});
 
@@ -281,6 +337,8 @@ exports.setupMessageSocket = (socket, io) => {
 					lastSeen: new Date().toISOString(),
 				});
 			});
+
+			console.log(`User ${socket.user.id} disconnected`);
 		} catch (error) {
 			console.error("Error handling disconnect:", error);
 		}
