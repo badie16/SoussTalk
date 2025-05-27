@@ -8,6 +8,10 @@ class MessageService {
 		this.socket = null;
 		this.messageHandlers = new Map();
 		this.isConnected = false;
+		this.reconnectAttempts = 0;
+		this.maxReconnectAttempts = 5;
+		this.userStatus = "online";
+		this.statusUpdateInterval = null;
 	}
 
 	// Initialize socket connection
@@ -21,9 +25,16 @@ class MessageService {
 				token: token,
 			},
 			transports: ["websocket", "polling"],
+			timeout: 20000,
+			forceNew: true,
+			reconnection: true,
+			reconnectionDelay: 1000,
+			reconnectionAttempts: this.maxReconnectAttempts,
+			reconnectionDelayMax: 5000,
 		});
 
 		this.setupSocketListeners();
+		this.startStatusUpdates();
 		return this.socket;
 	}
 
@@ -33,18 +44,42 @@ class MessageService {
 		this.socket.on("connect", () => {
 			console.log("Connected to message service");
 			this.isConnected = true;
+			this.reconnectAttempts = 0;
 			this.notifyHandlers("connected", true);
+
+			// Set user online and join conversations
+			this.updateUserStatus(true);
+			this.socket.emit("join_user_conversations");
 		});
 
-		this.socket.on("disconnect", () => {
-			console.log("Disconnected from message service");
+		this.socket.on("disconnect", (reason) => {
+			console.log("Disconnected from message service:", reason);
 			this.isConnected = false;
-			this.notifyHandlers("disconnected", true);
+			this.notifyHandlers("disconnected", { reason });
 		});
 
 		this.socket.on("connect_error", (error) => {
 			console.error("Connection error:", error);
-			this.notifyHandlers("connection_error", error);
+			this.reconnectAttempts++;
+			this.notifyHandlers("connection_error", {
+				error,
+				attempts: this.reconnectAttempts,
+			});
+		});
+
+		this.socket.on("reconnect", (attemptNumber) => {
+			console.log("Reconnected after", attemptNumber, "attempts");
+			this.updateUserStatus(true);
+			this.notifyHandlers("reconnected", { attemptNumber });
+		});
+
+		this.socket.on("reconnect_failed", () => {
+			console.error(
+				"Failed to reconnect after",
+				this.maxReconnectAttempts,
+				"attempts"
+			);
+			this.notifyHandlers("reconnect_failed", true);
 		});
 
 		// Message events
@@ -71,6 +106,10 @@ class MessageService {
 		// Conversation events
 		this.socket.on("new_conversation", (conversation) => {
 			this.notifyHandlers("new_conversation", conversation);
+		});
+
+		this.socket.on("conversation_updated", (data) => {
+			this.notifyHandlers("conversation_updated", data);
 		});
 
 		this.socket.on("new_group", (group) => {
@@ -107,6 +146,44 @@ class MessageService {
 		this.socket.on("messages_read", (data) => {
 			this.notifyHandlers("messages_read", data);
 		});
+
+		// Error events
+		this.socket.on("message_error", (error) => {
+			this.notifyHandlers("message_error", error);
+		});
+
+		this.socket.on("reaction_error", (error) => {
+			this.notifyHandlers("reaction_error", error);
+		});
+	}
+
+	// Automatic status updates
+	startStatusUpdates() {
+		// Update status every 30 seconds
+		this.statusUpdateInterval = setInterval(() => {
+			if (this.isConnected && this.userStatus === "online") {
+				this.socket.emit("heartbeat");
+			}
+		}, 30000);
+	}
+
+	stopStatusUpdates() {
+		if (this.statusUpdateInterval) {
+			clearInterval(this.statusUpdateInterval);
+			this.statusUpdateInterval = null;
+		}
+	}
+
+	// Update user online status
+	updateUserStatus(isOnline) {
+		this.userStatus = isOnline ? "online" : "offline";
+
+		if (this.socket && this.isConnected) {
+			this.socket.emit("update_status", {
+				isOnline,
+				timestamp: new Date().toISOString(),
+			});
+		}
 	}
 
 	// Event handler management
@@ -384,6 +461,9 @@ class MessageService {
 	}
 
 	disconnect() {
+		this.updateUserStatus(false);
+		this.stopStatusUpdates();
+
 		if (this.socket) {
 			this.socket.disconnect();
 			this.socket = null;
