@@ -83,6 +83,7 @@ const ChatList = ({ onSelectChat, selectedChatId }) => {
       setConversations((prev) => {
         const updated = prev.map((conv) => {
           if (conv.id === message.conversationId || conv.id === message.conversation_id) {
+			console.log(conv)
             return {
               ...conv,
               lastMessage: {
@@ -91,6 +92,7 @@ const ChatList = ({ onSelectChat, selectedChatId }) => {
                 senderName: message.sender?.username || message.sender?.name,
                 messageType: message.message_type || "text",
               },
+			  
               unreadCount: conv.id === selectedChatId ? 0 : (conv.unreadCount || 0) + 1,
               updatedAt: message.created_at || message.timestamp,
             }
@@ -519,11 +521,11 @@ function ConversationItem({ conversation, isSelected, onClick, isOnline }) {
                 {formatTime(conversation.lastMessage.timestamp)}
               </span>
             )}
-            {conversation.unreadCount > 0 && (
+            {/* {conversation.unreadCount > 0 && (
               <span className="bg-green-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
                 {conversation.unreadCount > 99 ? "99+" : conversation.unreadCount}
               </span>
-            )}
+            )} */}
           </div>
         </div>
         <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{getLastMessageText()}</p>

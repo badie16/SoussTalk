@@ -70,7 +70,9 @@ const MessageList = ({
 			if (unreadReceivedMessages.length > 0) {
 				// Add unread message IDs to tracking
 				const newUnreadIds = new Set(unreadMessageIds);
-				unreadReceivedMessages.forEach((msg) => newUnreadIds.add(msg.id));
+				unreadReceivedMessages.forEach((msg) => {
+					if (msg.read_at == null) newUnreadIds.add(msg.id);
+				});
 				setUnreadMessageIds(newUnreadIds);
 
 				const isNearBottom =
